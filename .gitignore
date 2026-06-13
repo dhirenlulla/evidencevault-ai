@@ -1,0 +1,48 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables and secrets
+.env
+*.env
+!.env.example
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local application data
+uploads/
+data/
+qdrant_storage/
+postgres_data/
+
+# Model and artifact files
+*.pt
+*.pth
+*.onnx
+*.joblib
+*.pkl
+
+# Build output
+build/
+dist/
+*.egg-info/
