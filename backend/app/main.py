@@ -5,38 +5,29 @@ from fastapi import FastAPI
 
 from app.api.routes.health import router as health_router
 from app.core.config import get_settings
+from app.clients.qdrant import close_qdrant_client
+from app.db.session import close_database_engine
 
 settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """
-    Handle application startup and shutdown.
+    Manage resources for the lifetime of the FastAPI application.
     
-    Later, startup will initialize database connections,
-    the embeddings model, the reranker, and the Qdrant client.
+    Code before 'yield' runs during startup.
+    Code after 'yield' runs after shutdown.
     """
     
     print(f"{settings.app_name} v{settings.app_version}")
     
     yield
     
+    await close_qdrant_client()
+    await close_database_engine()
+    
     print(f"Stopping {settings.app_name}")
     
-    
-# What lifespan will do later
-
-# FastAPI lifespan management gives us one controlled location for startup and shutdown operations.
-
-# Later, we will use it to:
-
-# Open database connections
-# Initialize Qdrant
-# Load the embedding model once
-# Load the reranker once
-# Close connections cleanly
-
-# We do not want to reload a large AI model for every request.
 
 app = FastAPI(
     title=settings.app_name,

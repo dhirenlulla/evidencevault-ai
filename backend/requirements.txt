@@ -3,3 +3,7 @@ uvicorn[standard]
 pydantic-settings
 pytest
 httpx
+SQLAlchemy==2.0.50
+psycopg[binary]==3.3.4
+alembic==1.18.4
+qdrant-client==1.18.0

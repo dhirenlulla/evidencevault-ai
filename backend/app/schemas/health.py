@@ -2,13 +2,22 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-class HealthResponse(BaseModel):
-    """Structured response returned by the health endpoint"""
+class ComponentHealth(BaseModel):
+    """Health information for one infrastructure component."""
+    status: Literal["ok", "error"]
+    detail: str
     
-    status: Literal["ok"]
+
+
+class HealthResponse(BaseModel):
+    """Complete health response for the EvidenceVault backend."""
+    
+    status: Literal["ok", "degraded"]
     service: str
     version: str
     environment: str
+    postgres: ComponentHealth
+    qdrant: ComponentHealth
     
 # for understanding -->
 

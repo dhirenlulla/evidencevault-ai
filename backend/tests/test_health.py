@@ -1,38 +1,76 @@
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
 
 from app.main import app
 
+
 client = TestClient(app)
+
 
 def test_root_endpoint() -> None:
     response = client.get("/")
-    
+
     assert response.status_code == 200
     assert response.json()["message"] == "Welcome to EvidenceVault AI"
-    
-def test_health_endpoint() -> None:
-    response = client.get("/api/v1/health")
-    
+
+
+def test_health_endpoint_when_dependencies_are_available() -> None:
+    with patch(
+        "app.api.routes.health.check_database_connection",
+        new=AsyncMock(
+            return_value=(
+                True,
+                "PostgreSQL connection is available",
+            )
+        ),
+    ), patch(
+        "app.api.routes.health.check_qdrant_connection",
+        new=AsyncMock(
+            return_value=(
+                True,
+                "Qdrant connection is available",
+            )
+        ),
+    ):
+        response = client.get("/api/v1/health")
+
     assert response.status_code == 200
-    
+
     body = response.json()
-    
-    assert body["status"]=="ok"
+
+    assert body["status"] == "ok"
     assert body["service"] == "EvidenceVault AI API"
-    assert body["version"] == "0.1.0"
+    assert body["version"] == "0.2.0"
     assert body["environment"] == "development"
-    
-    
-# Why write tests immediately?
+    assert body["postgres"]["status"] == "ok"
+    assert body["qdrant"]["status"] == "ok"
 
-# Every major feature we add will need a success test and failure tests.
 
-# Later, document upload tests will check:
+def test_health_endpoint_when_qdrant_is_unavailable() -> None:
+    with patch(
+        "app.api.routes.health.check_database_connection",
+        new=AsyncMock(
+            return_value=(
+                True,
+                "PostgreSQL connection is available",
+            )
+        ),
+    ), patch(
+        "app.api.routes.health.check_qdrant_connection",
+        new=AsyncMock(
+            return_value=(
+                False,
+                "Qdrant connection is unavailable",
+            )
+        ),
+    ):
+        response = client.get("/api/v1/health")
 
-# Valid PDF accepted
-# Wrong file type rejected
-# Oversized file rejected
-# Empty file rejected
-# Corrupted PDF handled cleanly
+    assert response.status_code == 503
 
-# Testing from the beginning prevents us from building an untestable application.
+    body = response.json()
+
+    assert body["status"] == "degraded"
+    assert body["postgres"]["status"] == "ok"
+    assert body["qdrant"]["status"] == "error"

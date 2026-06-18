@@ -1,56 +1,52 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     """
-    Central application configuration.
-    
-    Values can come from:
-    1. Defaults defined below
-    2. Environment variables
-    3. A local .env file
-    
+    Central configuration for the EvidenceVault backend.
+
+    Values are read from environment variables or the backend .env file.
+    Keeping configuration in one place prevents database URLs, API keys,
+    and service addresses from being hardcoded throughout the codebase.
     """
-    
+
     app_name: str = "EvidenceVault AI API"
-    app_version: str = "0.1.0"
+    app_version: str = "0.2.0"
     environment: str = "development"
     api_v1_prefix: str = "/api/v1"
-    
+
+    database_url: str = Field(
+        default=(
+            "postgresql+psycopg://"
+            "evidencevault_user:"
+            "evidencevault_local_password"
+            "@localhost:5432/"
+            "evidencevault_db"
+        )
+    )
+
+    sql_echo: bool = False
+
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_timeout_seconds: float = 5.0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore"
+        extra="ignore",
     )
-    
+
+
 @lru_cache
 def get_settings() -> Settings:
-    
     """
-    Return one cached Settings instance.
-    
-    Caching prevents the application from reading and validating
-    environment configuration repeatedly.
+    Return a cached Settings object.
+
+    The first call reads and validates the configuration. Later calls reuse
+    the same object instead of repeatedly loading the .env file.
     """
-    
     return Settings()
-
-
-
-# For understanding --->
-
-# What this file does
-# This becomes the central place for configuration.
-
-# Later we will add:
-# PostgreSQL URL
-# Qdrant URL
-# LLM API key
-# S3 bucket
-# Embedding model name
-# File-size limit
-# Retrieval limits
-
-# We will not hardcode those values throughout the application.
