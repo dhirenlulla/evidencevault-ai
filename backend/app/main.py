@@ -4,9 +4,13 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 
 from app.api.routes.health import router as health_router
+from app.api.routes.documents import router as documents_router
 from app.core.config import get_settings
 from app.clients.qdrant import close_qdrant_client
 from app.db.session import close_database_engine
+from app.services.local_storage import (
+    ensure_upload_directory
+)
 
 settings = get_settings()
 
@@ -33,8 +37,9 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description=(
-        "Backend API for EvidenceVault AI, a production-aware "
-        "document intelligence and retrieval-augmented generation platform."
+        "Backend API for EvidenceVault AI, "
+        "a production-aware document intelligence " 
+        "and Retrieval-Augmented generation platform."
     ),
     docs_url="/docs",
     redoc_url="/redoc",
@@ -48,6 +53,11 @@ app.include_router(
     prefix=settings.api_v1_prefix,
 )
 
+app.include_router(
+    documents_router,
+    prefix=settings.api_v1_prefix,
+)
+
 @app.get(
     "/",
     tags=["Root"],
@@ -57,5 +67,10 @@ async def root() -> dict[str, str]:
     return {
         "message": "Welcome to EvidenceVault AI",
         "documentation": "/docs",
-        "health": f"{settings.api_v1_prefix}/health"
+        "health": (
+            f"{settings.api_v1_prefix}/health"
+        ),
+        "documents": (
+            f"{settings.api_v1_prefix}/documents"
+        ),
     }
