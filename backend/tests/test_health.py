@@ -41,7 +41,7 @@ def test_health_endpoint_when_dependencies_are_available() -> None:
 
     assert body["status"] == "ok"
     assert body["service"] == "EvidenceVault AI API"
-    assert body["version"] == "0.2.0"
+    assert body["version"] == "0.3.0"
     assert body["environment"] == "development"
     assert body["postgres"]["status"] == "ok"
     assert body["qdrant"]["status"] == "ok"

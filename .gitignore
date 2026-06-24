@@ -30,6 +30,7 @@ Thumbs.db
 logs/
 
 # Local application data
+backend/uploads
 uploads/
 data/
 qdrant_storage/
