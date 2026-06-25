@@ -9,3 +9,4 @@ alembic==1.18.4
 qdrant-client==1.18.0
 python-multipart
 aiofiles
+pymupdf
