@@ -31,3 +31,43 @@ class FileStorageError(FileUploadError):
     Raised when a validated file cannot be written to local storage.
     """
     pass
+
+class PDFProcessingError(Exception):
+    """ 
+    Base exception for PDF parsing and text-processing failures.
+    """
+    pass
+
+class PDFPathError(PDFProcessingError):
+    """ 
+    Raised when a supplied PDF path is missing, invalid,
+    or does not point to a PDF file.
+    """
+    pass
+
+class PDFExtractionError(PDFProcessingError):
+    """ 
+    Raised when PyMuPDF cannot open or extract text from
+    a PDF document.
+    """
+    
+    pass
+
+
+
+"""
+exception hierarchy:
+
+Exception
+├── FileUploadError
+│   ├── InvalidFileError
+│   ├── UnsupportedFileTypeError
+│   ├── FileTooLargeError
+│   └── FileStorageError
+│
+└── PDFProcessingError
+    ├── PDFPathError
+    └── PDFExtractionError
+
+    
+"""
