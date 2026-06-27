@@ -6,7 +6,9 @@ from pathlib import Path
 import pymupdf
 
 from app.core.exceptions import (
+    PDFEncryptedError,
     PDFExtractionError,
+    PDFMalformedError,
     PDFPathError,
     PDFProcessingError
 )
@@ -197,7 +199,7 @@ def extract_pdf_pages(pdf_path: str | Path) -> ExtractedDocument:
     try:
         with pymupdf.open(resolved_path) as document:
             if document.needs_pass:
-                raise PDFExtractionError(
+                raise PDFEncryptedError(
                     "The PDF requires a password before "
                     "its text can be extracted."
                 )
@@ -283,7 +285,7 @@ def extract_pdf_pages(pdf_path: str | Path) -> ExtractedDocument:
         raise
 
     except (RuntimeError, ValueError) as exc:
-        raise PDFExtractionError(
+        raise PDFMalformedError(
             "PyMuPDF could not extract text "
             f"from the PDF: {exc}"
         ) from exc

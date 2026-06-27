@@ -54,7 +54,21 @@ class PDFExtractionError(PDFProcessingError):
     pass
 
 
+class PDFEncryptedError(PDFExtractionError):
+    """ 
+    Raised when a PDF requires a password before extraction.
+    """
+    pass
 
+
+class PDFMalformedError(PDFExtractionError):
+    """ 
+    Raised when PyMuPDF cannot open or parse a PDF.
+    """
+    pass
+
+
+    
 """
 exception hierarchy:
 
@@ -68,6 +82,7 @@ Exception
 └── PDFProcessingError
     ├── PDFPathError
     └── PDFExtractionError
-
+        ├── PDFEncryptedError
+        └── PDFMalformedError
     
 """
