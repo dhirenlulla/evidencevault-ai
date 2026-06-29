@@ -85,3 +85,33 @@ async def list_documents(
     return list(
         result.scalars().all()
     )
+    
+async def update_document_processing_state(
+    session: AsyncSession,
+    *,
+    document: Document,
+    status: str,
+    page_count: int | None,
+    error_message: str | None,
+) -> Document:
+    
+    """ 
+    Update and persist a document's processing state.
+    
+    The supplied Document must belong to the current
+    SQLAlchemy session.
+    """
+    
+    document.status = status
+    document.page_count = page_count
+    document.error_message = error_message
+    
+    try: 
+        await session.commit()
+        await session.refresh(document)
+        
+    except SQLAlchemyError:
+        await session.rollback()
+        raise
+    
+    return document

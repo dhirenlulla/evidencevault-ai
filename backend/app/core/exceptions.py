@@ -68,6 +68,32 @@ class PDFMalformedError(PDFExtractionError):
     pass
 
 
+class DocumentProcessingWorkflowError(Exception):
+    """ 
+    Base exception for document-processing workflow failures.
+    """
+    
+    pass
+
+class DocumentNotFoundError(DocumentProcessingWorkflowError):
+    """ 
+    Raised when no PostgreSQL document exists for a supplied UUID.
+    """
+    pass
+
+class DocumentAlreadyProcessingError(DocumentProcessingWorkflowError):
+    """ 
+    Raised when a document is already marked as processing
+    """
+    pass
+
+class DocumentStoragePathError(DocumentProcessingWorkflowError):
+    """
+    Raised when a document has a missing, unsafe or invalid local
+    storage path.
+    """
+    pass
+
     
 """
 exception hierarchy:
@@ -79,10 +105,15 @@ Exception
 │   ├── FileTooLargeError
 │   └── FileStorageError
 │
-└── PDFProcessingError
-    ├── PDFPathError
-    └── PDFExtractionError
-        ├── PDFEncryptedError
-        └── PDFMalformedError
-    
+├── PDFProcessingError
+|    ├── PDFPathError
+|    └── PDFExtractionError
+|        ├── PDFEncryptedError
+|        └── PDFMalformedError
+|   
+└── DocumentProcessingWorkflowError
+    ├── DocumentNotFoundError
+    ├── DocumentAlreadyProcessingError
+    └── DocumentStoragePathError
+
 """
