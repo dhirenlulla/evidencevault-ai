@@ -94,6 +94,20 @@ class DocumentStoragePathError(DocumentProcessingWorkflowError):
     """
     pass
 
+class TextChunkingError(Exception):
+    """ 
+    Base exception for text-chunking failures.
+    """
+    pass
+
+class InvalidChunkingConfigurationError(TextChunkingError):
+    """ 
+    Raised when chunk size, overlap, or minimum-content
+    settings are invalid.
+    """
+    pass
+
+
     
 """
 exception hierarchy:
@@ -111,9 +125,13 @@ Exception
 |        ├── PDFEncryptedError
 |        └── PDFMalformedError
 |   
-└── DocumentProcessingWorkflowError
-    ├── DocumentNotFoundError
-    ├── DocumentAlreadyProcessingError
-    └── DocumentStoragePathError
-
+├── DocumentProcessingWorkflowError
+|   ├── DocumentNotFoundError
+|   ├── DocumentAlreadyProcessingError
+|   └── DocumentStoragePathError
+|
+└── TextChunkError
+    └── InvalidChunkingConfigurationError
+    
+    
 """
