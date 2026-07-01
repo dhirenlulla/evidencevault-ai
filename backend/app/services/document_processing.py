@@ -41,6 +41,7 @@ class DocumentProcessingStatus(str, Enum):
     EXTRACTED_WITH_WARNINGS = (
         "extracted_with_warnings"
     )
+    CHUNKED = "chunked"
     OCR_REQUIRED = "ocr_required"
     PASSWORD_REQUIRED = "password_required"
     FAILED = "failed"

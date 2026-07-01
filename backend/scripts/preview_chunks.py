@@ -38,6 +38,7 @@ ALLOWED_DOCUMENT_STATUSES = {
         DocumentProcessingStatus
         .EXTRACTED_WITH_WARNINGS.value
     ),
+    DocumentProcessingStatus.CHUNKED.value,
 }
 
 

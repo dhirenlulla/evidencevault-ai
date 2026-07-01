@@ -108,6 +108,19 @@ class InvalidChunkingConfigurationError(TextChunkingError):
     pass
 
 
+class DocumentNotReadyForChunkingError(DocumentProcessingWorkflowError):
+    """ 
+    Raised when a document has not completed text extraction.
+    """
+    pass
+
+
+class NoChunksGeneratedError(DocumentProcessingWorkflowError):
+    """ 
+    Raised when an extracted document produces no usable chunks.
+    """
+    pass
+
     
 """
 exception hierarchy:
@@ -128,7 +141,9 @@ Exception
 ├── DocumentProcessingWorkflowError
 |   ├── DocumentNotFoundError
 |   ├── DocumentAlreadyProcessingError
-|   └── DocumentStoragePathError
+|   ├── DocumentStoragePathError
+|   ├── DocumentNotReadyForChunkingError
+|   └── NoChunkGeneratedError
 |
 └── TextChunkError
     └── InvalidChunkingConfigurationError
