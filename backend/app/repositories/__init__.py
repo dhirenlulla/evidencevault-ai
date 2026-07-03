@@ -7,6 +7,7 @@ from app.repositories.document import (
 
 from app.repositories.document_chunk import (
     DocumentChunkInput,
+    count_document_chunks,
     list_document_chunks,
     replace_document_chunks
 )
@@ -17,6 +18,7 @@ __all__ = [
     "list_documents",
     "update_document_processing_state",
     "DocumentChunkInput",
+    "count_document_chunks",
     "list_document_chunks",
     "replace_document_chunks",
 ]

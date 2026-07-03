@@ -2,7 +2,12 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import(
+    delete, 
+    select,
+    func,
+)
+
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -80,10 +85,14 @@ async def replace_document_chunks(
 async def list_document_chunks(
     session: AsyncSession,
     *,
-    document_id: UUID
+    document_id: UUID,
+    limit: int = 50,
+    offset: int = 0,
 ) -> list[DocumentChunk]:
     """ 
     Return one document's chunks in their original order.
+    
+    Limit and offset provide database-level pagination.
     """
     
     statement = (
@@ -92,8 +101,36 @@ async def list_document_chunks(
         ).order_by(
             DocumentChunk.chunk_index.asc()
         )
+        .offset(offset)
+        .limit(limit)
     )
     
     result = await session.execute(statement)
     
     return list(result.scalars().all())
+
+async def count_document_chunks(
+    session: AsyncSession,
+    *,
+    document_id: UUID,
+) -> int:
+    """ 
+    Return the total persisted chunk count for one document.
+    """
+    
+    statement = (
+        select(
+            func.count(
+                DocumentChunk.id
+            )
+        )
+        .where(
+            DocumentChunk.document_id == document_id
+        )
+    )
+    
+    result = await session.execute(statement)
+    
+    count = result.scalar_one()
+    
+    return int(count)
