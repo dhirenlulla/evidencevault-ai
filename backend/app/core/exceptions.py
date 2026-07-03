@@ -122,6 +122,45 @@ class NoChunksGeneratedError(DocumentProcessingWorkflowError):
     pass
 
     
+class EmbeddingServiceError(Exception):
+    
+    """ 
+    Base exception for embedding model and vector-
+    generation failures.
+    """
+    pass
+
+class InvalidEmbeddingInputError(EmbeddingServiceError):
+    """ 
+    Raised when blank or invalid text is supplied
+    for embedding generation.
+    """
+    pass
+
+class EmbeddingModelLoadError(EmbeddingServiceError):
+    """ 
+    Raised when the configured embedding model
+    cannot be loaded.
+    """
+    pass
+
+class EmbeddingDimensionMismatchError(EmbeddingServiceError):
+    """
+    Raised when the model's actual output dimension
+    differs from the configured dimension.
+    """
+
+    pass
+    
+    
+class EmbeddingGenerationError(EmbeddingServiceError):
+    """
+    Raised when the model cannot generate valid
+    document or query embeddings.
+    """
+
+    pass
+    
 """
 exception hierarchy:
 
@@ -145,8 +184,14 @@ Exception
 |   ├── DocumentNotReadyForChunkingError
 |   └── NoChunkGeneratedError
 |
-└── TextChunkError
-    └── InvalidChunkingConfigurationError
-    
-    
+├── TextChunkError
+|    └── InvalidChunkingConfigurationError
+|   
+└── EmbeddingServiceError
+    ├── InvalidEmbeddingInputError
+    ├── EmbeddingModelLoadError
+    ├── EmbeddingDimensionMismatchError
+    └── EmbeddingGenerationError
+
+
 """

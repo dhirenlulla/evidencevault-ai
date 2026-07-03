@@ -40,6 +40,30 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_timeout_seconds: float = 5.0
     
+    embedding_model_name: str = (
+        "BAAI/bge-small-en-v1.5"
+    )
+
+    embedding_dimension: int = Field(
+        default=384,
+        ge=1,
+    )
+
+    embedding_batch_size: int = Field(
+        default=16,
+        ge=1,
+        le=256,
+    )
+
+    embedding_device: str = "cpu"
+
+    embedding_normalize: bool = True
+
+    embedding_query_instruction: str = (
+        "Represent this sentence for searching "
+        "relevant passages: "
+    )
+    
     upload_directory: str = "uploads"
     max_upload_size_mb: int = 20
     upload_chunk_size_bytes: int = 1_048_576
