@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_timeout_seconds: float = 5.0
     
+    qdrant_collection_name : str = (
+        "evidencevault_chunks"
+    )
+    
+    qdrant_vector_distance: str = "Cosine"
+    
     embedding_model_name: str = (
         "BAAI/bge-small-en-v1.5"
     )

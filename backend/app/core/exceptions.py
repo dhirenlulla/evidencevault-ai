@@ -160,7 +160,45 @@ class EmbeddingGenerationError(EmbeddingServiceError):
     """
 
     pass
+
+
+class QdrantCollectionError(Exception):
+    """ 
+    Base exception for Qdrant collection
+    management failures.
+    """
+    pass
+
+
+class QdrantCollectionCreationError(QdrantCollectionError):
+    """ 
+    Raised when a Qdrant collection cannot be created.
+    """
     
+    pass
+
+
+
+class QdrantCollectionValidationError(QdrantCollectionError):
+    """ 
+    Raised when an existing qdrant collection does
+    not match the expected configuration
+    """
+    
+    pass
+
+
+
+class QdrantCollectionUnavailableError(QdrantCollectionError):
+    """ 
+    Raised when Qdrant cannot be reached or collection
+    metadata cannot be loaded.
+    """
+    pass
+
+
+
+
 """
 exception hierarchy:
 
@@ -187,11 +225,16 @@ Exception
 ├── TextChunkError
 |    └── InvalidChunkingConfigurationError
 |   
-└── EmbeddingServiceError
-    ├── InvalidEmbeddingInputError
-    ├── EmbeddingModelLoadError
-    ├── EmbeddingDimensionMismatchError
-    └── EmbeddingGenerationError
+├── EmbeddingServiceError
+|    ├── InvalidEmbeddingInputError
+|    ├── EmbeddingModelLoadError
+|    ├── EmbeddingDimensionMismatchError
+|    └── EmbeddingGenerationError
+|
+└── QdrantCollectionError
+    ├── QdrantCollectionCreationError
+    ├── QdrantCollectionValidationError
+    └── QdrantCollectionUnavailableError
 
 
 """
