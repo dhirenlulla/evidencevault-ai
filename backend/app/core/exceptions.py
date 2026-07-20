@@ -197,7 +197,33 @@ class QdrantCollectionUnavailableError(QdrantCollectionError):
     pass
 
 
+class VectorIndexingError(Exception):
+    """ 
+    Base exception for vector-indexing workflow failures.
+    """
+    pass
 
+
+class DocumentNotReadyForIndexingError(VectorIndexingError):
+    """ 
+    Raised when a document has not reached the chunked data.
+    """
+    pass
+
+
+class NoChunksAvailableForIndexingError(VectorIndexingError):
+    """ 
+    Raised when a document has no persisted chunks to index.
+    """
+    pass
+
+
+class QdrantPointUpsertError(VectorIndexingError):
+    """
+    Raised when chunk vectors cannot be upserted into Qdrant.
+    """
+
+    pass
 
 """
 exception hierarchy:
@@ -231,10 +257,15 @@ Exception
 |    ├── EmbeddingDimensionMismatchError
 |    └── EmbeddingGenerationError
 |
-└── QdrantCollectionError
-    ├── QdrantCollectionCreationError
-    ├── QdrantCollectionValidationError
-    └── QdrantCollectionUnavailableError
-
-
+├── QdrantCollectionError
+|    ├── QdrantCollectionCreationError
+|    ├── QdrantCollectionValidationError
+|    └── QdrantCollectionUnavailableError
+|
+└── VectorIndexingError
+    ├── DocumentNotReadyForIndexingError
+    ├── NoChunksAvailableForIndexingError
+    └── QdrantPointUpsertError
+    
+    
 """

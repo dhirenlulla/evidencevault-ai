@@ -156,7 +156,7 @@ class EmbeddingService:
 
             actual_dimension = (
                 model
-                .get_sentence_embedding_dimension()
+                .get_embedding_dimension()
             )
 
             if actual_dimension is None:
