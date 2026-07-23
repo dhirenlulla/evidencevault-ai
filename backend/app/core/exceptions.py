@@ -225,6 +225,64 @@ class QdrantPointUpsertError(VectorIndexingError):
 
     pass
 
+
+
+class LLMServiceError(Exception):
+    """ 
+    Base exception for language-model generation failures.
+    """
+    pass
+
+
+class LLMAuthenticationError(LLMServiceError):
+    """
+    Raised when the configured API key is invalid
+    or missing.
+    """
+    pass
+
+
+class LLMRateLimitError(LLMServiceError):
+    """ 
+    Raised when the provider rejects requests because
+    the usage quota or rate limit has been exceeded.
+    """
+    
+    pass
+
+
+class LLMTimeoutError(LLMServiceError):
+    """
+    Raised when the provider does not respond within
+    the configured timeout.
+    """
+    pass
+
+
+class LLMResponseError(LLMServiceError):
+    """
+    Raised when the provider returns an invalid or
+    unexpected response.
+    """
+    pass
+
+
+class LLMGenerationError(LLMServiceError):
+    """
+    Raised when the language model cannot generate
+    a valid answer.
+    """
+    pass 
+
+
+
+class LLMConnectionError(LLMServiceError):
+    """
+    Raised when the configured provider cannot be reached.
+    """
+    pass
+
+
 """
 exception hierarchy:
 
@@ -262,10 +320,18 @@ Exception
 |    ├── QdrantCollectionValidationError
 |    └── QdrantCollectionUnavailableError
 |
-└── VectorIndexingError
-    ├── DocumentNotReadyForIndexingError
-    ├── NoChunksAvailableForIndexingError
-    └── QdrantPointUpsertError
+├── VectorIndexingError
+|   ├── DocumentNotReadyForIndexingError
+|   ├── NoChunksAvailableForIndexingError
+|   └── QdrantPointUpsertError
+|   
+└── LLMServiceError
+    ├── LLMAuthenticationError
+    ├── LLMRateLimitError
+    ├── LLMGenerationError
+    ├── LLMTimeoutError
+    ├── LLMConnectionError
+    └── LLMResponseError
     
     
 """

@@ -74,6 +74,22 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 20
     upload_chunk_size_bytes: int = 1_048_576
     
+    
+    llm_provider: str = "groq"
+
+    groq_api_key: str = ""
+
+    groq_model_name: str = (
+        "llama-3.3-70b-versatile"
+    )
+
+    llm_temperature: float = 0.0
+
+    llm_max_tokens: int = 1024
+
+    retrieval_top_k: int = 5
+    
+    llm_timeout_seconds: float = 60.0
 
     model_config = SettingsConfigDict(
         env_file=".env",
