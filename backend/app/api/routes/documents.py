@@ -53,6 +53,22 @@ from app.services.local_storage import (
     store_pdf_locally,
 )
 
+from app.core.dependencies import (
+    get_retrieval_service,
+)
+
+from app.schemas.retrieval import (
+    RetrievalResult,
+)
+
+from app.schemas.retrieval_request import (
+    RetrievalRequest,
+)
+
+from app.services.retrieval import (
+    RetrievalService,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -528,4 +544,33 @@ async def get_document_endpoint(
 
     return DocumentResponse.model_validate(
         document
+    )
+    
+    
+@router.post(
+    "/{document_id}/retrieve",
+    response_model=RetrievalResult,
+    summary="Retrieve relevant document chunks.",
+    description=(
+        "Perform semantic search against one "
+        "document using vector similarity."
+    ),
+)
+async def retrieve_document_chunks(
+    document_id: UUID,
+    request: RetrievalRequest,
+    retrieval_service: Annotated[
+        RetrievalService,
+        Depends(get_retrieval_service),
+    ],
+) -> RetrievalResult:
+    """ 
+    Retrieve the most relevant chunks from one 
+    processed document.
+    """
+    
+    return await retrieval_service.retrieve(
+        document_id=document_id,
+        query=request.query,
+        limit=request.limit,
     )
