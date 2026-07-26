@@ -55,6 +55,7 @@ from app.services.local_storage import (
 
 from app.core.dependencies import (
     get_retrieval_service,
+    get_generation_service,
 )
 
 from app.schemas.retrieval import (
@@ -69,6 +70,14 @@ from app.services.retrieval import (
     RetrievalService,
 )
 
+from app.schemas.answer import (
+    AnswerResponse,
+    AnswerRequest,
+)
+
+from app.services.generation import (
+    GenerationService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -573,4 +582,31 @@ async def retrieve_document_chunks(
         document_id=document_id,
         query=request.query,
         limit=request.limit,
+    )
+    
+@router.post(
+    "/{document_id}/answer",
+    response_model=AnswerResponse,
+    summary="Generate a grounded answer.",
+    description=(
+        "Retrieve relevant document chunks and "
+        "generate a grounded answer using the "
+        "configured language model."
+    ),
+)
+async def generate_document_answer(
+    document_id: UUID,
+    request: AnswerRequest,
+    generation_service: Annotated[
+        GenerationService,
+        Depends(get_generation_service),
+    ],
+) -> AnswerResponse:
+    """ 
+    Execute the complete RAG pipeline.
+    """
+    
+    return await generation_service.generate_answer(
+        document_id=document_id,
+        query=request.query,
     )

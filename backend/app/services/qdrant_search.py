@@ -1,4 +1,5 @@
 from uuid import UUID
+import time
 
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 
@@ -64,5 +65,4 @@ class QdrantSearchService:
                     word_count=payload["word_count"],
                 )
             )
-            
         return tuple(chunks)

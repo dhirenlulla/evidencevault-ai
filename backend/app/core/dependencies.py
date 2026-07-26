@@ -11,6 +11,10 @@ from app.services.qdrant_search import (
 from app.services.retrieval import (
     RetrievalService,
 )
+from app.services.generation import GenerationService
+from app.services.groq_llm import GroqLLMService
+from app.services.prompt_builder import PromptBuilder
+
 
 def get_retrieval_service() -> RetrievalService:
     """
@@ -28,4 +32,15 @@ def get_retrieval_service() -> RetrievalService:
         collection_name=(
             settings.qdrant_collection_name
         )
+    )
+    
+def get_generation_service() -> GenerationService:
+    """ 
+    Construct the complete RAG generation service.
+    """
+    
+    return GenerationService(
+        retrieval_service=get_retrieval_service(),
+        prompt_builder=PromptBuilder(),
+        llm_service=GroqLLMService(),
     )

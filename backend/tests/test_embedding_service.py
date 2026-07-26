@@ -43,7 +43,7 @@ class FakeEmbeddingModel:
         self.raise_document_error = False
         self.raise_query_error = False
 
-    def get_sentence_embedding_dimension(
+    def get_embedding_dimension(
         self,
     ) -> int:
         return self.dimension

@@ -10,11 +10,13 @@ from app.core.exceptions import (
     LLMConnectionError,
     LLMGenerationError,
     LLMTimeoutError,
+    LLMAuthenticationError,
+    LLMRateLimitError,
 )
 from app.services.llm import BaseLLMService
 
 
-class  GroqLLMService(BaseLLMService):
+class GroqLLMService(BaseLLMService):
     """ 
     Groq implementation of the BaseLLMService.
     
@@ -26,16 +28,28 @@ class  GroqLLMService(BaseLLMService):
     def __init__(self) -> None:
         settings = get_settings()
         
-        self.settings = settings
+        self._settings = settings
         
         self.client = AsyncGroq(
             api_key=settings.groq_api_key,
+            timeout=settings.llm_timeout_seconds,
         )
         
+    
+    @property
+    def model_name(self) -> str:
+        """ 
+        Return the configured model name.
+        """
+        
+        return self._settings.groq_model_name
+    
+    
     async def generate_answer(
         self,
         *,
-        prompt: str,
+        system_prompt: str,
+        user_prompt: str,
     ) -> str :
         """ 
         Generate a grounded answer using the configured Groq language model.
@@ -44,27 +58,42 @@ class  GroqLLMService(BaseLLMService):
         try:
             response = (
                 await self.client.chat.completions.create(
-                    model=self.settings.groq_model_name,
+                    model=self._settings.groq_model_name,
                     messages=[
                         {
+                            "role" : "system",
+                            "content" : system_prompt,
+                        },
+                        {
                             "role" : "user",
-                            "content" : prompt
+                            "content" : user_prompt,
                         }
                     ],
                     temperature=(
-                        self.settings.llm_temperature
+                        self._settings.llm_temperature
                     ),
                     max_completion_tokens=(
-                        self.settings.llm_max_tokens,
+                        self._settings.llm_max_tokens
                     ),
                 )
             )
             
-            return (
+            if not response.choices:
+                raise LLMGenerationError(
+                    "Groq returned no completion choices."
+                )
+            
+            answer = (
                 response.choices[0]
                 .message.content
-                or ""
             )
+            
+            if not answer:
+                raise LLMGenerationError(
+                    "Groq returned an empty response."
+                )
+                
+            return answer.strip()
             
         except APIConnectionError as exc:
             raise LLMConnectionError(
@@ -77,13 +106,32 @@ class  GroqLLMService(BaseLLMService):
             ) from exc
             
         except APIStatusError as exc:
+            
+            if exc.status_code == 401:
+                raise LLMAuthenticationError(
+                    "Invalid Groq API key."
+                ) from exc
+                
+            if exc.status_code == 429:
+                raise LLMRateLimitError(
+                    "Groq rate limit exceeded."
+                ) from exc
+                
             raise LLMGenerationError(
                 "Groq returned an error "
                 f"(status {exc.status_code})."
             ) from exc
             
+        except (
+            LLMConnectionError,
+            LLMTimeoutError,
+            LLMGenerationError,
+        ):
+            raise
+        
         except Exception as exc:
             raise LLMGenerationError(
-                "an unexpected error occurred while "
+                "An unexpected error occurred while "
                 "generating the answer."
             ) from exc
+            

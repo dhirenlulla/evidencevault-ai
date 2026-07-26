@@ -1,12 +1,16 @@
 from abc import ABC, abstractmethod
 
-from app.schemas.answer import AnswerResponse
-
-
 class BaseLLMService(ABC):
     """ 
     Abstract interface for all language model providers.
     """
+    
+    @property
+    @abstractmethod
+    def model_name(self) -> str:
+        """
+        Return the configured model name.
+        """
     
     @abstractmethod
     async def generate_answer(
@@ -18,5 +22,3 @@ class BaseLLMService(ABC):
         """ 
         Generate an answer from a prompt.
         """
-        
-        raise NotImplementedError

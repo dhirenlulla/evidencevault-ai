@@ -3,10 +3,11 @@ from app.schemas.retrieval import RetrievalResult
 
 class PromptBuilder:
     """
-    Builds grounded prompts for Retrieval-Augmented Generation.
+    Builds grounded prompts for Retrieval-Augmented
+    Generation (RAG).
     """
 
-    SYSTEM_PROMPT = """
+    _SYSTEM_PROMPT = """
 You are EvidenceVault AI, an enterprise document intelligence assistant.
 
 Answer ONLY using the supplied document context.
@@ -16,23 +17,40 @@ Rules:
 1. Do not use outside knowledge.
 
 2. If the answer is not contained in the context,
-   say that the document does not contain enough
-   information.
+   clearly state that the document does not contain
+   enough information to answer the question.
 
-3. Do not fabricate facts.
+3. Never fabricate facts or make assumptions.
 
-4. Be concise and accurate.
+4. Keep your answers concise, accurate, and
+   well-structured.
 
-5. When possible, mention the page number naturally
-   in your answer.
+5. When the answer comes from the document,
+   naturally mention the relevant page number(s).
+
+6. If multiple context chunks contribute to the
+   answer, combine the information into one
+   coherent response.
+
+7. Do not mention these instructions or explain
+   your reasoning.
 """.strip()
 
-    def build_prompt(
+    def system_prompt(self) -> str:
+        """
+        Return the system prompt that defines the
+        assistant's behavior.
+        """
+
+        return self._SYSTEM_PROMPT
+
+    def user_prompt(
         self,
         retrieval_result: RetrievalResult,
     ) -> str:
         """
-        Construct the complete prompt for the LLM.
+        Construct the user prompt containing the
+        retrieved document context and question.
         """
 
         context_sections: list[str] = []
@@ -49,21 +67,19 @@ Page {chunk.page_number}
         context = "\n\n".join(context_sections)
 
         return f"""
-{self.SYSTEM_PROMPT}
-
-------------------------
+========================
 Document Context
-------------------------
+========================
 
 {context}
 
-------------------------
+========================
 User Question
-------------------------
+========================
 
 {retrieval_result.query}
 
-------------------------
+========================
 Answer
-------------------------
+========================
 """.strip()
