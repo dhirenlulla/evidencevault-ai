@@ -60,9 +60,10 @@ class GenerationService:
             user_prompt=user_prompt,
         )
         
-        generation_time = (
-            time.perf_counter() - start_time
-        ) * 1000
+        generation_time = round(
+            (time.perf_counter() - start_time) * 1000,
+            2,
+        )
         
         return AnswerResponse(
             document_id=document_id,

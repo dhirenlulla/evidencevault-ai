@@ -95,14 +95,14 @@ class GroqLLMService(BaseLLMService):
                 
             return answer.strip()
             
-        except APIConnectionError as exc:
-            raise LLMConnectionError(
-                "Could not connect to the Groq API."
-            ) from exc
-            
         except APITimeoutError as exc:
             raise LLMTimeoutError(
                 "The Groq request timed out."
+            ) from exc
+
+        except APIConnectionError as exc:
+            raise LLMConnectionError(
+                "Could not connect to the Groq API."
             ) from exc
             
         except APIStatusError as exc:
