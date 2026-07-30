@@ -9,6 +9,8 @@ from app.services.hybrid_retrieval import (
     HybridRetrievalService,
 )
 from app.schemas.retrieval import RetrievedChunk
+from app.services.bm25 import BM25Result
+from app.services.rrf import RRFService
 
 
 def build_chunk(
@@ -361,3 +363,202 @@ def test_bm25_failure_is_propagated() -> None:
                 query="query",
             )
         )
+
+
+# ----------------------------------------------------------------
+# Phase 4: lexical_results correctness and RRF fusion
+# ----------------------------------------------------------------
+
+
+def test_lexical_results_reflect_bm25_ranking() -> None:
+    """
+    lexical_results should be the dense chunks reordered according
+    to the BM25 ranking, not a copy of dense_results.
+    """
+
+    chunks = (
+        build_chunk(index=0, text="First chunk"),
+        build_chunk(index=1, text="Second chunk"),
+    )
+
+    bm25_result = (
+        BM25Result(index=1, score=5.0),
+        BM25Result(index=0, score=1.0),
+    )
+
+    service, _, _ = build_service(
+        dense_result=chunks,
+        lexical_result=bm25_result,
+    )
+
+    result = asyncio.run(
+        service.retrieve(
+            document_id=uuid4(),
+            query="chunk",
+        )
+    )
+
+    assert result.lexical_results == (chunks[1], chunks[0])
+
+
+def test_lexical_results_empty_when_bm25_returns_nothing() -> None:
+    """
+    If BM25 returns no matches, lexical_results should be an empty
+    tuple rather than falling back to dense_results.
+    """
+
+    chunk = build_chunk(index=0, text="Chunk")
+
+    service, _, _ = build_service(
+        dense_result=(chunk,),
+        lexical_result=(),
+    )
+
+    result = asyncio.run(
+        service.retrieve(
+            document_id=uuid4(),
+            query="query",
+        )
+    )
+
+    assert result.lexical_results == ()
+
+
+def test_result_includes_fused_results_field() -> None:
+    """
+    HybridRetrievalResult should expose a fused_results field
+    produced by RRF.
+    """
+
+    chunk = build_chunk(index=0, text="Chunk")
+
+    service, _, _ = build_service(
+        dense_result=(chunk,),
+        lexical_result=(BM25Result(index=0, score=1.0),),
+    )
+
+    result = asyncio.run(
+        service.retrieve(
+            document_id=uuid4(),
+            query="query",
+        )
+    )
+
+    assert result.fused_results == (chunk,)
+
+
+def test_fused_results_ranks_chunk_found_by_both_signals_first() -> None:
+    """
+    A chunk found by both dense and lexical retrieval should be
+    fused ahead of a chunk found only by dense retrieval, because
+    it accumulates a score contribution from each ranking.
+    """
+
+    dense_only_chunk = build_chunk(index=0, text="dense only chunk")
+    shared_chunk = build_chunk(index=1, text="shared chunk")
+
+    # Dense retrieval ranks dense_only_chunk first, shared_chunk
+    # second.
+    dense_result = (dense_only_chunk, shared_chunk)
+
+    # BM25 only surfaces shared_chunk (dense index 1); it does not
+    # rank dense_only_chunk at all.
+    lexical_result = (
+        BM25Result(index=1, score=9.0),
+    )
+
+    service, _, _ = build_service(
+        dense_result=dense_result,
+        lexical_result=lexical_result,
+    )
+
+    result = asyncio.run(
+        service.retrieve(
+            document_id=uuid4(),
+            query="query",
+        )
+    )
+
+    # shared_chunk earns a fusion contribution from both rankings,
+    # so it outranks dense_only_chunk despite dense retrieval alone
+    # having ranked it lower.
+    assert result.fused_results[0] == shared_chunk
+
+
+def test_fused_results_include_dense_only_chunks() -> None:
+    """
+    A chunk found only by dense retrieval (absent from the BM25
+    ranking) should still appear in fused_results.
+    """
+
+    chunk = build_chunk(index=0, text="Only found by dense retrieval")
+
+    service, _, _ = build_service(
+        dense_result=(chunk,),
+        lexical_result=(),
+    )
+
+    result = asyncio.run(
+        service.retrieve(
+            document_id=uuid4(),
+            query="query",
+        )
+    )
+
+    assert chunk in result.fused_results
+
+
+def test_fused_results_empty_when_dense_results_empty() -> None:
+    """
+    With no dense candidates at all, fusion has nothing to rank
+    and should return an empty tuple.
+    """
+
+    service, _, _ = build_service(
+        dense_result=(),
+        lexical_result=(),
+    )
+
+    result = asyncio.run(
+        service.retrieve(
+            document_id=uuid4(),
+            query="query",
+        )
+    )
+
+    assert result.fused_results == ()
+
+
+def test_custom_rrf_service_is_used_when_provided() -> None:
+    """
+    HybridRetrievalService should use an injected RRFService
+    instead of constructing a default one, honoring dependency
+    injection.
+    """
+
+    chunk = build_chunk(index=0, text="Chunk")
+
+    retrieval = FakeRetrievalService((chunk,))
+    bm25 = FakeBM25Service((BM25Result(index=0, score=1.0),))
+
+    calls = []
+
+    class SpyRRFService(RRFService):
+        def fuse(self, *, rankings):
+            calls.append(rankings)
+            return super().fuse(rankings=rankings)
+
+    service = HybridRetrievalService(
+        retrieval_service=retrieval,
+        bm25_service=bm25,
+        rrf_service=SpyRRFService(),
+    )
+
+    asyncio.run(
+        service.retrieve(
+            document_id=uuid4(),
+            query="query",
+        )
+    )
+
+    assert len(calls) == 1

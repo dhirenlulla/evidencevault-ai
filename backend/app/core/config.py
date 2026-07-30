@@ -89,6 +89,11 @@ class Settings(BaseSettings):
 
     retrieval_top_k: int = 5
     
+    rrf_k: int = Field(
+        default=60,
+        ge=1
+    )
+    
     llm_timeout_seconds: float = 60.0
 
     model_config = SettingsConfigDict(
