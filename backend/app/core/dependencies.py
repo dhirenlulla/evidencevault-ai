@@ -1,7 +1,13 @@
+from functools import lru_cache
+
 from app.clients.qdrant import get_qdrant_client
 from app.core.config import get_settings
 from app.services.embedding import (
     get_embedding_service,
+)
+
+from app.services.reranker import (
+    CrossEncoderReranker,
 )
 
 from app.services.qdrant_search import (
@@ -62,6 +68,36 @@ def get_hybrid_retrieval_service() -> HybridRetrievalService:
         rrf_service=get_rrf_service(),
     )
 
+
+def get_reranker_service() -> CrossEncoderReranker:
+    """ 
+    Construct the cross-encoder reranking service.
+    
+    Cached because loading the cross-encoder model is expensive;
+    this must not happen on every request
+    """
+    
+    settings = get_settings()
+    
+    return _cached_reranker_service(
+        model_name=settings.reranker_model_name,
+        top_k=settings.reranker_top_k,
+        device=settings.reranker_device,
+    )
+    
+@lru_cache
+def _cached_reranker_service(
+    *,
+    model_name: str,
+    top_k: int,
+    device: str,
+) -> CrossEncoderReranker:
+    return CrossEncoderReranker(
+        model_name=model_name,
+        top_k=top_k,
+        device=device,
+    )
+    
     
 def get_generation_service() -> GenerationService:
     """ 

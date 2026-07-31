@@ -5,7 +5,7 @@ from typing import Generic, Hashable, TypeVar
 T = TypeVar("T", bound=Hashable)
 
 @dataclass(frozen=True)
-class RRFScore(Generic(T)):
+class RRFScore(Generic[T]):
     """ 
     One fused ranking result.
     

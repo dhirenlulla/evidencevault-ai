@@ -94,6 +94,17 @@ class Settings(BaseSettings):
         ge=1
     )
     
+    reranker_model_name: str = (
+        "cross-encoder/ms-macro-MiniLM-L-6-v2"
+    )
+    
+    reranker_top_k: int = Field(
+        default=5,
+        ge=1,
+    )
+    
+    reranker_device: str = "cpu"
+    
     llm_timeout_seconds: float = 60.0
 
     model_config = SettingsConfigDict(

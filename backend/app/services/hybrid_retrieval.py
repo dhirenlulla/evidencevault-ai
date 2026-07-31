@@ -74,7 +74,7 @@ class HybridRetrievalService:
         )
         
         lexical_results = tuple(
-            dense_results[bm25_results.index]
+            dense_results[bm25_result.index]
             for bm25_result in bm25_results
         )
         
@@ -85,7 +85,7 @@ class HybridRetrievalService:
         
         return HybridRetrievalResult(
             dense_results=dense_results,
-            lexical_results=dense_results,
+            lexical_results=lexical_results,
             fused_results=fused_results,
         )
         
@@ -103,7 +103,7 @@ class HybridRetrievalService:
         """
         
         chunks_by_id = {
-            chunk.chunk_id : chunks_by_id
+            chunk.chunk_id : chunk
             for chunk in dense_results
         }
         

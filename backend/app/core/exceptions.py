@@ -283,6 +283,29 @@ class LLMConnectionError(LLMServiceError):
     pass
 
 
+class RerankingError(Exception):
+    """ 
+    Base exception for cross-encoder reranking failures.
+    """
+    pass
+
+
+class RerankingModelLoadError(RerankingError):
+    """ 
+    Raised when the configured cross-encoder model
+    cannot be loaded.
+    """
+    pass
+
+
+class RerankingGenerationError(RerankingError):
+    """ 
+    Raised when the cross-encoder cannot score the
+    supplied query/chunk pairs.
+    """
+    pass
+
+
 """
 exception hierarchy:
 
@@ -325,13 +348,16 @@ Exception
 |   ├── NoChunksAvailableForIndexingError
 |   └── QdrantPointUpsertError
 |   
-└── LLMServiceError
-    ├── LLMAuthenticationError
-    ├── LLMRateLimitError
-    ├── LLMGenerationError
-    ├── LLMTimeoutError
-    ├── LLMConnectionError
-    └── LLMResponseError
-    
+├── LLMServiceError
+|   ├── LLMAuthenticationError
+|   ├── LLMRateLimitError
+|   ├── LLMGenerationError
+|   ├── LLMTimeoutError
+|   ├── LLMConnectionError
+|   └── LLMResponseError
+|
+└── RerankingError
+    ├── RerankingModelLoadError
+    └── RerankingGenerationError   
     
 """
