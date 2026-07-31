@@ -4,14 +4,14 @@
 
 ### Production-Aware Document Intelligence and Citation-Ready RAG Platform
 
-A backend-first platform for secure PDF ingestion, document classification, page-aware extraction, deterministic chunking, durable PostgreSQL persistence, and grounded Retrieval-Augmented Generation.
+A backend-first platform for secure PDF ingestion, document classification, page-aware extraction, deterministic chunking, durable PostgreSQL persistence, hybrid retrieval, cross-encoder reranking, and measurable Retrieval-Augmented Generation.
 
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Async_API-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-DC244C)](https://qdrant.tech/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-57_Passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-220_Passing-brightgreen)](#testing)
 [![Status](https://img.shields.io/badge/Status-Active_Development-orange)](#development-status)
 
 [Overview](#project-overview) ·
@@ -27,7 +27,7 @@ A backend-first platform for secure PDF ingestion, document classification, page
 
 ## Project Overview
 
-**EvidenceVault AI** is a production-aware document intelligence platform designed to help teams securely ingest enterprise documents, preserve page-level evidence, and eventually answer questions using grounded Retrieval-Augmented Generation (RAG).
+**EvidenceVault AI** is a production-aware document intelligence platform designed to help teams securely ingest enterprise documents, preserve page-level evidence, and answer questions using grounded, measurably-evaluated Retrieval-Augmented Generation (RAG).
 
 The platform is being built for document-heavy workflows such as:
 
@@ -38,9 +38,9 @@ The platform is being built for document-heavy workflows such as:
 - Finance and operations documents
 - Internal knowledge bases
 
-Unlike a basic “chat with PDF” prototype, EvidenceVault AI is being developed as a production-oriented system with explicit lifecycle states, secure file handling, PDF classification, page-aware extraction, deterministic chunks, transactional persistence, database migrations, automated tests, and infrastructure for future hybrid retrieval and cited answers.
+Unlike a basic "chat with PDF" prototype, EvidenceVault AI is being developed as a production-oriented system with explicit lifecycle states, secure file handling, PDF classification, page-aware extraction, deterministic chunks, transactional persistence, database migrations, embeddings, hybrid dense + lexical retrieval fused with Reciprocal Rank Fusion, cross-encoder reranking, LLM-grounded generation, a dedicated retrieval evaluation framework, and automated tests at every layer.
 
-> **Current scope:** Secure ingestion, classification, extraction, chunking, and durable PostgreSQL persistence are implemented. Step 5F-B, which exposes processing and chunk-retrieval APIs, is the current milestone. Embeddings, Qdrant indexing, retrieval, reranking, and LLM generation come next.
+> **Current scope:** Secure ingestion, classification, extraction, chunking, durable PostgreSQL persistence, embedding generation, Qdrant vector indexing, dense retrieval, BM25 lexical retrieval, RRF-fused hybrid retrieval, cross-encoder reranking, prompt construction, Groq LLM generation, and a standalone retrieval evaluation framework (Recall/Precision/Hit Rate/MRR/NDCG + latency stats) are all implemented and unit-tested. **Streaming generation, a live query/chat API endpoint wiring the full retrieval → rerank → generate pipeline together, page-level citations, and observability come next.**
 
 ---
 
@@ -59,9 +59,10 @@ EvidenceVault AI aims to solve this by building a pipeline that:
 7. Produces deterministic UUIDs and content hashes.
 8. Persists chunks transactionally and idempotently.
 9. Generates embeddings and indexes chunks in Qdrant.
-10. Retrieves evidence using semantic and keyword search.
-11. Produces grounded answers with page-level citations.
-12. Evaluates faithfulness and refuses unsupported claims.
+10. Retrieves evidence using dense semantic search fused with BM25 keyword search via Reciprocal Rank Fusion.
+11. Reranks the fused candidate set with a cross-encoder for higher-precision ordering.
+12. Produces grounded answers with page-level citations.
+13. Measures retrieval quality (Recall, Precision, Hit Rate, MRR, NDCG) and refuses unsupported claims.
 
 ---
 
@@ -90,7 +91,10 @@ EvidenceVault AI introduces production-oriented concerns first:
 - Alembic migrations
 - PostgreSQL constraints and indexes
 - Dependency-aware health checks
-- Automated unit and API tests
+- Dense retrieval decoupled from lexical retrieval, fused by rank rather than raw score (RRF)
+- A two-stage retrieve-then-rerank pipeline (cheap bi-encoder shortlist, accurate cross-encoder reordering)
+- A standalone, dependency-free retrieval evaluation framework, not just "it feels better"
+- Automated unit and API tests for every service, using dependency-injected fakes instead of live models or databases
 
 ---
 
@@ -109,16 +113,25 @@ EvidenceVault AI introduces production-oriented concerns first:
 | Step 5C | ✅ Complete | Text, partial, scanned, empty, encrypted, and malformed classification |
 | Step 5D | ✅ Complete | Processing workflow and PostgreSQL status transitions |
 | Step 5E | ✅ Complete | Deterministic page-aware chunking with overlap and metadata |
-| Step 5F-A | ✅ Complete | Durable transactional chunk persistence in PostgreSQL |
-| Step 5F-B | 🚧 In progress | Processing API and paginated chunk-retrieval API |
-| Step 6 | ⏳ Planned | Embeddings and Qdrant vector indexing |
-| Step 7 | ⏳ Planned | Citation-aware RAG question answering |
+| Step 5F | ✅ Complete | Transactional chunk persistence, processing API, and paginated chunk-retrieval API |
+| Step 6 | ✅ Complete | Embedding generation and Qdrant vector indexing |
+| Step 7 | ✅ Complete | Dense retrieval, prompt construction, and Groq LLM generation |
+| Step 8 | ✅ Complete | BM25 lexical retrieval and hybrid retrieval orchestration |
+| Step 9 | ✅ Complete | Reciprocal Rank Fusion (RRF) — fuses dense + lexical rankings |
+| Step 10 | ✅ Complete | Cross-encoder reranking (top-K reordering of the fused candidate set) |
+| Step 11 | ✅ Complete | Retrieval evaluation framework (Recall, Precision, Hit Rate, MRR, NDCG, latency) |
+| Step 12 | ⏳ Planned | Streaming generation |
+| Step 13 | ⏳ Planned | Wire hybrid retrieval → reranker → generation into one live query/chat endpoint |
+| Step 14 | ⏳ Planned | Page-level citations and "not enough evidence" fallback |
+| Step 15 | ⏳ Planned | Observability (structured logging, tracing, metrics) |
+
+> Note: Hybrid retrieval, RRF, reranking, and evaluation are implemented and independently unit-tested, but **not yet wired into a single live API endpoint** — each service is built and tested in isolation first, then composed together in a later integration phase. This is intentional: it keeps every piece independently testable before it's combined into the full pipeline.
 
 ### Verified Development Baseline
 
 The current implementation has been validated with:
 
-- **57 passing automated tests**
+- **220 passing automated tests**, zero failing, zero skipped
 - A real **16-page PDF**
 - **64,210 extracted characters**
 - **10,096 extracted words**
@@ -126,6 +139,7 @@ The current implementation has been validated with:
 - Matching PostgreSQL `chunk_count` and physical chunk-row counts
 - Stable chunk IDs across repeated runs
 - Idempotent reprocessing without duplicated rows
+- Every retrieval-layer service (embedding, dense retrieval, BM25, RRF fusion, reranking, evaluation) tested against fakes/doubles, with zero dependency on a live database, Qdrant instance, or downloaded ML model at test time
 
 ---
 
@@ -146,7 +160,7 @@ The current implementation has been validated with:
 Docker Compose provisions:
 
 - **PostgreSQL 16** for relational application data
-- **Qdrant** for the upcoming vector-search layer
+- **Qdrant** for the vector-search layer
 - Persistent Docker volumes
 - Isolated service networking
 - PostgreSQL health checks
@@ -188,6 +202,8 @@ Implemented endpoints support:
 - Uploading a PDF
 - Listing documents
 - Retrieving a document by UUID
+- Running the processing pipeline (classification → extraction → chunking → persistence)
+- Retrieving paginated, persisted chunks
 - Pagination validation
 - Structured HTTP errors
 
@@ -261,16 +277,6 @@ extracted
 chunked
 ```
 
-Future indexing states:
-
-```text
-chunked
-   ↓
-indexing
-   ↓
-ready
-```
-
 ### 10. Page-Aware Deterministic Chunking
 
 Default settings:
@@ -320,7 +326,7 @@ Benefits:
 - Changed IDs when content changes
 - Safe retries
 - Idempotent reprocessing
-- Stable future Qdrant point IDs
+- Stable Qdrant point IDs
 - Easier incremental indexing
 
 ### 12. Transactional Chunk Persistence
@@ -339,6 +345,51 @@ ROLLBACK
 ```
 
 This prevents partial writes and duplicate chunk sets.
+
+### 13. Embeddings and Vector Indexing
+
+- Sentence-transformer embedding model (bi-encoder), lazily loaded and cached
+- Configurable model name, batch size, device, and query instruction prefix
+- Qdrant collection management and point upserts
+- Deterministic point IDs derived from chunk UUIDs, keeping the vector index rebuildable from PostgreSQL
+
+### 14. Dense Retrieval
+
+- Embeds the query with the same model used at indexing time
+- Searches Qdrant, scoped to a single document
+- Returns ranked, similarity-scored chunks
+
+### 15. BM25 Lexical Retrieval
+
+- Classic BM25 scoring over the dense-retrieved candidate pool
+- Complements dense retrieval by rewarding exact keyword/term overlap that embeddings can undervalue
+
+### 16. Hybrid Retrieval with Reciprocal Rank Fusion (RRF)
+
+- `HybridRetrievalService` orchestrates dense retrieval and BM25 lexical retrieval over the same candidate set
+- `RRFService` fuses the two rankings by position (`1 / (k + rank)`), not by raw score — the industry-standard approach for combining retrievers whose scores live on incompatible scales
+- Fully generic and reusable: `RRFService` fuses any ranked list of hashable identifiers, not just chunk IDs
+- `k` is configurable (`rrf_k`, default 60)
+
+### 17. Cross-Encoder Reranking
+
+- `CrossEncoderReranker` re-scores a short candidate list by feeding `(query, chunk)` pairs jointly into a cross-encoder model — more accurate than bi-encoder similarity, deliberately used only on a small shortlist since it doesn't scale to a full corpus
+- Configurable model name, device, and `top_k`
+- Lazily loaded and cached, following the same pattern as the embedding service
+
+### 18. Retrieval Evaluation Framework
+
+- `RetrievalEvaluator`: computes Recall@K, Precision@K, Hit Rate@K, MRR, and NDCG@K for a single query against binary relevance labels
+- `RetrievalMetricsAggregator`: averages metrics across a query set
+- `compare_metrics`: before/after delta comparison between two retrieval configurations
+- `LatencyTimer` and `compute_latency_stats`: wall-clock timing with mean/p50/p95 — a separate, reusable concern independent of relevance scoring
+- Every metric operates on plain hashable IDs, with zero dependency on retrieval, embeddings, or the database — any ranked list can be evaluated
+
+### 19. LLM Generation
+
+- Provider-abstracted LLM service (currently Groq)
+- Prompt builder assembles retrieved context into a grounded prompt
+- Configurable temperature, max tokens, and timeout
 
 ---
 
@@ -368,10 +419,24 @@ flowchart TD
     N --> O[Transactional Chunk Repository]
     O --> P[(PostgreSQL document_chunks)]
 
-    B --> Q[Health Service]
-    Q --> E
-    Q --> R[(Qdrant Infrastructure)]
+    P --> Q[Embedding Service]
+    Q --> R[(Qdrant Vector Index)]
+
+    S[User Query] --> T[Dense Retrieval]
+    S --> U[BM25 Lexical Retrieval]
+    T --> V[RRF Fusion]
+    U --> V
+    V --> W[Cross-Encoder Reranker]
+    W --> X[Prompt Builder]
+    X --> Y[Groq LLM]
+    Y --> Z[Answer]
+
+    B --> AA[Health Service]
+    AA --> E
+    AA --> R
 ```
+
+> `T` through `Z` are implemented and unit-tested as standalone services but not yet wired together behind a single API route — that composition is the next milestone.
 
 ### Current Ingestion Flow
 
@@ -395,15 +460,30 @@ Create deterministic IDs and hashes
 Replace previous chunks transactionally
     ↓
 Set document status to "chunked"
+    ↓
+Generate embeddings and upsert into Qdrant
 ```
 
-### Planned RAG Architecture
+### Current Retrieval Flow
+
+```text
+User question
+    ↓
+Dense retrieval (Qdrant, cosine similarity)  +  BM25 lexical retrieval (same candidate pool)
+    ↓
+Reciprocal Rank Fusion (fuse by rank, not raw score)
+    ↓
+Cross-encoder reranking (top-K re-scored jointly with the query)
+    ↓
+Prompt construction with retrieved context
+    ↓
+Groq LLM generation
+```
+
+### Planned: Full Query Pipeline (wired end-to-end)
 
 ```mermaid
 flowchart TD
-    A[Persisted PostgreSQL Chunks] --> B[Embedding Model]
-    B --> C[(Qdrant Vector Index)]
-
     D[User Question] --> E[Query Processing]
     E --> F[Dense Retrieval]
     E --> G[BM25 Retrieval]
@@ -432,10 +512,17 @@ flowchart TD
 | PostgreSQL driver | Psycopg 3 |
 | Migrations | Alembic |
 | Relational database | PostgreSQL 16 |
-| Vector infrastructure | Qdrant |
+| Vector database | Qdrant |
 | PDF processing | PyMuPDF |
 | Upload parsing | python-multipart |
 | Async file I/O | aiofiles |
+| Embeddings | sentence-transformers (bi-encoder) |
+| Dense retrieval | Qdrant |
+| Sparse retrieval | BM25 (rank_bm25) |
+| Fusion | Reciprocal Rank Fusion (custom implementation) |
+| Reranking | sentence-transformers CrossEncoder |
+| LLM layer | Groq |
+| Evaluation | Custom retrieval metrics (Recall, Precision, Hit Rate, MRR, NDCG) + latency stats |
 | Testing | Pytest, HTTPX |
 | Infrastructure | Docker Compose |
 
@@ -443,16 +530,12 @@ flowchart TD
 
 | Layer | Planned Technology |
 |---|---|
-| Embeddings | Sentence Transformers or BGE |
-| Dense retrieval | Qdrant |
-| Sparse retrieval | BM25 |
-| Fusion | Reciprocal Rank Fusion |
-| Reranking | Cross-encoder |
-| LLM layer | Model-agnostic provider abstraction |
-| Evaluation | RAGAS and custom metrics |
+| Streaming | Server-sent events / chunked LLM streaming |
+| Extended evaluation | RAGAS and faithfulness scoring |
 | Frontend | Streamlit or Next.js |
 | Cloud storage | AWS S3 |
 | Deployment | Docker and AWS |
+| Observability | Structured logging, tracing, metrics |
 
 ---
 
@@ -466,11 +549,11 @@ evidencevault-ai/
 │   ├── app/
 │   │   ├── api/routes/                # FastAPI routes
 │   │   ├── clients/                   # External service clients
-│   │   ├── core/                      # Settings and exceptions
+│   │   ├── core/                      # Settings, exceptions, dependency wiring
 │   │   ├── db/models/                 # SQLAlchemy models
 │   │   ├── repositories/              # Database access
 │   │   ├── schemas/                   # Pydantic schemas
-│   │   ├── services/                  # Processing logic
+│   │   ├── services/                  # Processing, retrieval, reranking, evaluation logic
 │   │   └── main.py                    # Application entry point
 │   ├── scripts/                       # Development utilities
 │   ├── tests/                         # Test suite
@@ -561,7 +644,7 @@ cd evidencevault-ai
 
 ```powershell
 Copy-Item .env.example .env
-Copy-Item backend\\.env.example backend\\.env
+Copy-Item backend\.env.example backend\.env
 ```
 
 #### macOS
@@ -584,16 +667,16 @@ cp backend/.env.example backend/.env
 
 ```powershell
 py -3.10 -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r backend\\requirements.txt
+python -m pip install -r backend\requirements.txt
 ```
 
 If PowerShell blocks activation:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\\.venv\\Scripts\\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 ```
 
 #### macOS
@@ -756,10 +839,26 @@ SQL_ECHO=false
 
 QDRANT_URL=http://localhost:6333
 QDRANT_TIMEOUT_SECONDS=5
+QDRANT_COLLECTION_NAME=evidencevault_chunks
 
 UPLOAD_DIRECTORY=uploads
 MAX_UPLOAD_SIZE_MB=20
 UPLOAD_CHUNK_SIZE_BYTES=1048576
+
+EMBEDDING_MODEL_NAME=BAAI/bge-small-en-v1.5
+EMBEDDING_DEVICE=cpu
+
+RETRIEVAL_TOP_K=5
+RRF_K=60
+
+RERANKER_MODEL_NAME=cross-encoder/ms-marco-MiniLM-L-6-v2
+RERANKER_TOP_K=5
+RERANKER_DEVICE=cpu
+
+EVALUATION_DEFAULT_K=5
+
+GROQ_API_KEY=
+GROQ_MODEL_NAME=llama-3.3-70b-versatile
 ```
 
 > Never commit production secrets. These values are local-development examples.
@@ -777,15 +876,15 @@ UPLOAD_CHUNK_SIZE_BYTES=1048576
 | `POST` | `/api/v1/documents/upload` | Validate, store, and register a PDF |
 | `GET` | `/api/v1/documents` | List documents |
 | `GET` | `/api/v1/documents/{document_id}` | Retrieve document metadata |
-
-### Current Step 5F-B Milestone
-
-| Method | Endpoint | Purpose |
-|---|---|---|
 | `POST` | `/api/v1/documents/{document_id}/process` | Run classification, extraction, chunking, and persistence |
 | `GET` | `/api/v1/documents/{document_id}/chunks` | Return paginated persisted chunks |
 
-These two routes are in progress and should only be marked complete after their tests pass.
+### Planned
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/documents/{document_id}/query` | Run the full retrieve → fuse → rerank → generate pipeline and return a grounded, cited answer |
+| `GET` | `/api/v1/documents/{document_id}/evaluate` | Run the retrieval evaluation framework against a labeled query set |
 
 ---
 
@@ -799,7 +898,7 @@ These two routes are in progress and should only be marked complete after their 
 curl.exe -X POST `
   "http://127.0.0.1:8000/api/v1/documents/upload" `
   -H "accept: application/json" `
-  -F "file=@C:\\path\\to\\document.pdf"
+  -F "file=@C:\path\to\document.pdf"
 ```
 
 #### macOS
@@ -864,133 +963,6 @@ curl "http://127.0.0.1:8000/api/v1/documents/<DOCUMENT_UUID>"
 
 ---
 
-## Processing and Inspection Scripts
-
-Run from `backend` with the virtual environment active.
-
-### Inspect a PDF
-
-#### Windows PowerShell
-
-```powershell
-python -m scripts.inspect_pdf ".\\uploads\\<PDF_FILENAME>.pdf"
-```
-
-#### macOS
-
-```bash
-python -m scripts.inspect_pdf "./uploads/<PDF_FILENAME>.pdf"
-```
-
-#### Linux
-
-```bash
-python -m scripts.inspect_pdf "./uploads/<PDF_FILENAME>.pdf"
-```
-
-### Classify a PDF
-
-#### Windows PowerShell
-
-```powershell
-python -m scripts.classify_pdf ".\\uploads\\<PDF_FILENAME>.pdf"
-```
-
-#### macOS
-
-```bash
-python -m scripts.classify_pdf "./uploads/<PDF_FILENAME>.pdf"
-```
-
-#### Linux
-
-```bash
-python -m scripts.classify_pdf "./uploads/<PDF_FILENAME>.pdf"
-```
-
-### Process a Registered Document
-
-#### Windows PowerShell
-
-```powershell
-python -m scripts.process_document <DOCUMENT_UUID>
-```
-
-#### macOS
-
-```bash
-python -m scripts.process_document <DOCUMENT_UUID>
-```
-
-#### Linux
-
-```bash
-python -m scripts.process_document <DOCUMENT_UUID>
-```
-
-### Preview Chunks
-
-#### Windows PowerShell
-
-```powershell
-python -m scripts.preview_chunks <DOCUMENT_UUID> `
-  --limit 5 `
-  --max-characters 1200 `
-  --overlap-characters 200 `
-  --minimum-page-characters 40
-```
-
-#### macOS
-
-```bash
-python -m scripts.preview_chunks <DOCUMENT_UUID> \
-  --limit 5 \
-  --max-characters 1200 \
-  --overlap-characters 200 \
-  --minimum-page-characters 40
-```
-
-#### Linux
-
-```bash
-python -m scripts.preview_chunks <DOCUMENT_UUID> \
-  --limit 5 \
-  --max-characters 1200 \
-  --overlap-characters 200 \
-  --minimum-page-characters 40
-```
-
-### Persist Chunks
-
-#### Windows PowerShell
-
-```powershell
-python -m scripts.persist_chunks <DOCUMENT_UUID> `
-  --max-characters 1200 `
-  --overlap-characters 200 `
-  --minimum-page-characters 40
-```
-
-#### macOS
-
-```bash
-python -m scripts.persist_chunks <DOCUMENT_UUID> \
-  --max-characters 1200 \
-  --overlap-characters 200 \
-  --minimum-page-characters 40
-```
-
-#### Linux
-
-```bash
-python -m scripts.persist_chunks <DOCUMENT_UUID> \
-  --max-characters 1200 \
-  --overlap-characters 200 \
-  --minimum-page-characters 40
-```
-
----
-
 ## Testing
 
 ### Run the Complete Suite
@@ -1016,7 +988,7 @@ python -m pytest -v
 Current verified result:
 
 ```text
-57 passed
+220 passed
 ```
 
 A Starlette TestClient deprecation warning may appear. It is currently non-blocking.
@@ -1026,15 +998,27 @@ A Starlette TestClient deprecation warning may appear. It is currently non-block
 #### Windows PowerShell
 
 ```powershell
-python -m pytest tests\\test_local_storage.py -v
-python -m pytest tests\\test_pdf_extraction.py -v
-python -m pytest tests\\test_pdf_classification.py -v
-python -m pytest tests\\test_document_processing.py -v
-python -m pytest tests\\test_text_chunking.py -v
-python -m pytest tests\\test_document_chunk_persistence.py -v
+python -m pytest tests\test_local_storage.py -v
+python -m pytest tests\test_pdf_extraction.py -v
+python -m pytest tests\test_pdf_classification.py -v
+python -m pytest tests\test_document_processing.py -v
+python -m pytest tests\test_text_chunking.py -v
+python -m pytest tests\test_document_chunk_persistence.py -v
+python -m pytest tests\test_embedding_service.py -v
+python -m pytest tests\test_qdrant_indexing.py -v
+python -m pytest tests\test_qdrant_search.py -v
+python -m pytest tests\test_retrieval_service.py -v
+python -m pytest tests\test_bm25_service.py -v
+python -m pytest tests\test_rrf_service.py -v
+python -m pytest tests\test_hybrid_retrieval.py -v
+python -m pytest tests\test_reranker_service.py -v
+python -m pytest tests\test_evaluation_service.py -v
+python -m pytest tests\test_latency.py -v
+python -m pytest tests\test_generation_service.py -v
+python -m pytest tests\test_groq_llm.py -v
 ```
 
-#### macOS
+#### macOS / Linux
 
 ```bash
 python -m pytest tests/test_local_storage.py -v
@@ -1043,17 +1027,18 @@ python -m pytest tests/test_pdf_classification.py -v
 python -m pytest tests/test_document_processing.py -v
 python -m pytest tests/test_text_chunking.py -v
 python -m pytest tests/test_document_chunk_persistence.py -v
-```
-
-#### Linux
-
-```bash
-python -m pytest tests/test_local_storage.py -v
-python -m pytest tests/test_pdf_extraction.py -v
-python -m pytest tests/test_pdf_classification.py -v
-python -m pytest tests/test_document_processing.py -v
-python -m pytest tests/test_text_chunking.py -v
-python -m pytest tests/test_document_chunk_persistence.py -v
+python -m pytest tests/test_embedding_service.py -v
+python -m pytest tests/test_qdrant_indexing.py -v
+python -m pytest tests/test_qdrant_search.py -v
+python -m pytest tests/test_retrieval_service.py -v
+python -m pytest tests/test_bm25_service.py -v
+python -m pytest tests/test_rrf_service.py -v
+python -m pytest tests/test_hybrid_retrieval.py -v
+python -m pytest tests/test_reranker_service.py -v
+python -m pytest tests/test_evaluation_service.py -v
+python -m pytest tests/test_latency.py -v
+python -m pytest tests/test_generation_service.py -v
+python -m pytest tests/test_groq_llm.py -v
 ```
 
 ---
@@ -1068,7 +1053,7 @@ python -m pytest tests/test_document_chunk_persistence.py -v
 docker compose exec postgres psql `
   -U evidencevault_user `
   -d evidencevault_db `
-  -c "\\dt"
+  -c "\dt"
 ```
 
 #### macOS
@@ -1077,7 +1062,7 @@ docker compose exec postgres psql `
 docker compose exec postgres psql \
   -U evidencevault_user \
   -d evidencevault_db \
-  -c "\\dt"
+  -c "\dt"
 ```
 
 #### Linux
@@ -1086,7 +1071,7 @@ docker compose exec postgres psql \
 docker compose exec postgres psql \
   -U evidencevault_user \
   -d evidencevault_db \
-  -c "\\dt"
+  -c "\dt"
 ```
 
 ### Inspect `document_chunks`
@@ -1097,7 +1082,7 @@ docker compose exec postgres psql \
 docker compose exec postgres psql `
   -U evidencevault_user `
   -d evidencevault_db `
-  -c "\\d document_chunks"
+  -c "\d document_chunks"
 ```
 
 #### macOS
@@ -1106,7 +1091,7 @@ docker compose exec postgres psql `
 docker compose exec postgres psql \
   -U evidencevault_user \
   -d evidencevault_db \
-  -c "\\d document_chunks"
+  -c "\d document_chunks"
 ```
 
 #### Linux
@@ -1115,7 +1100,7 @@ docker compose exec postgres psql \
 docker compose exec postgres psql \
   -U evidencevault_user \
   -d evidencevault_db \
-  -c "\\d document_chunks"
+  -c "\d document_chunks"
 ```
 
 ### Compare Document Metadata and Chunk Rows
@@ -1170,39 +1155,11 @@ docker compose exec postgres psql \
 
 ### Status
 
-#### Windows PowerShell
-
-```powershell
-docker compose ps
-```
-
-#### macOS
-
-```bash
-docker compose ps
-```
-
-#### Linux
-
 ```bash
 docker compose ps
 ```
 
 ### Logs
-
-#### Windows PowerShell
-
-```powershell
-docker compose logs -f
-```
-
-#### macOS
-
-```bash
-docker compose logs -f
-```
-
-#### Linux
 
 ```bash
 docker compose logs -f
@@ -1212,39 +1169,11 @@ Press `Ctrl+C` to stop following logs.
 
 ### Stop Without Deleting Data
 
-#### Windows PowerShell
-
-```powershell
-docker compose stop
-```
-
-#### macOS
-
-```bash
-docker compose stop
-```
-
-#### Linux
-
 ```bash
 docker compose stop
 ```
 
 ### Remove Containers but Keep Volumes
-
-#### Windows PowerShell
-
-```powershell
-docker compose down
-```
-
-#### macOS
-
-```bash
-docker compose down
-```
-
-#### Linux
 
 ```bash
 docker compose down
@@ -1261,20 +1190,11 @@ docker compose down
 ```powershell
 # Stop Uvicorn with Ctrl+C, then:
 deactivate
-Set-Location "D:\\Projects\\EvidenceVault-AI"
+Set-Location "D:\Projects\EvidenceVault-AI"
 docker compose stop
 ```
 
-### macOS
-
-```bash
-# Stop Uvicorn with Ctrl+C, then:
-deactivate
-cd /path/to/evidencevault-ai
-docker compose stop
-```
-
-### Linux
+### macOS / Linux
 
 ```bash
 # Stop Uvicorn with Ctrl+C, then:
@@ -1288,26 +1208,15 @@ docker compose stop
 #### Windows PowerShell
 
 ```powershell
-Set-Location "D:\\Projects\\EvidenceVault-AI"
-.\\.venv\\Scripts\\Activate.ps1
+Set-Location "D:\Projects\EvidenceVault-AI"
+.\.venv\Scripts\Activate.ps1
 docker compose up -d
 Set-Location backend
 python -m alembic current
 python -m pytest -v
 ```
 
-#### macOS
-
-```bash
-cd /path/to/evidencevault-ai
-source .venv/bin/activate
-docker compose up -d
-cd backend
-python -m alembic current
-python -m pytest -v
-```
-
-#### Linux
+#### macOS / Linux
 
 ```bash
 cd /path/to/evidencevault-ai
@@ -1370,9 +1279,9 @@ Protections:
 
 PostgreSQL is the durable source of truth for metadata, processing states, chunk text, ordering, and hashes.
 
-Qdrant will become the retrieval index for embedding vectors, similarity search, metadata filters, and stable point upserts.
+Qdrant is the retrieval index for embedding vectors, similarity search, and stable point upserts.
 
-This separation allows the vector index to be rebuilt from PostgreSQL.
+This separation allows the vector index to be rebuilt from PostgreSQL at any time.
 
 ### Why Preserve Page Boundaries?
 
@@ -1403,6 +1312,18 @@ The system removes old chunks and inserts the complete new set inside one transa
 ### Why Character-Based Chunking?
 
 The final embedding model is not locked yet. Character-based limits remain predictable, deterministic, model-independent, dependency-light, and easy to test.
+
+### Why Fuse Rankings Instead of Averaging Scores?
+
+Dense retrieval (cosine similarity) and BM25 (lexical score) live on incompatible scales — a `0.83` from one and a `3.1` from the other mean nothing comparable side by side. Reciprocal Rank Fusion sidesteps this by only using rank position (`1 / (k + rank)`), making it robust to retrievers with completely different scoring distributions, and it's the standard approach used by production hybrid-search systems.
+
+### Why Rerank Only a Shortlist, Not the Whole Corpus?
+
+A cross-encoder reads the query and a chunk together in one forward pass, which is far more accurate than comparing two separately-computed embeddings — but it can't be pre-computed or indexed, so running it against every chunk in a document doesn't scale. The standard pattern is: cheap retrieval finds a shortlist fast, then the cross-encoder reorders just that shortlist accurately.
+
+### Why a Standalone Evaluation Framework Instead of "It Feels Better"?
+
+Recall, Precision, Hit Rate, MRR, and NDCG each catch different failure modes a retriever can have — high recall with poor ordering, or a perfect first hit but a small overall net. Measuring them explicitly, before and after each retrieval change, turns "I added reranking" into "I added reranking and it improved NDCG@5 by a measurable amount," which is a fundamentally stronger and more defensible engineering claim.
 
 ---
 
@@ -1447,35 +1368,37 @@ The final embedding model is not locked yet. Character-based limits remain predi
 - [x] SHA-256 hashes
 - [x] Transactional PostgreSQL persistence
 - [x] Idempotent replacement
-- [ ] Processing endpoint
-- [ ] Paginated chunk retrieval
+- [x] Processing endpoint
+- [x] Paginated chunk retrieval
 
 ### Phase 5: Embeddings and Retrieval
 
-- [ ] Embedding model integration
-- [ ] Qdrant collection management
-- [ ] Vector indexing
-- [ ] Dense retrieval
-- [ ] BM25 retrieval
-- [ ] Reciprocal Rank Fusion
-- [ ] Cross-encoder reranking
+- [x] Embedding model integration
+- [x] Qdrant collection management
+- [x] Vector indexing
+- [x] Dense retrieval
+- [x] BM25 retrieval
+- [x] Reciprocal Rank Fusion
+- [x] Cross-encoder reranking
+- [x] Retrieval evaluation framework (Recall, Precision, Hit Rate, MRR, NDCG, latency)
 - [ ] Metadata filtering
 
 ### Phase 6: Grounded Generation
 
-- [ ] LLM provider abstraction
-- [ ] Grounded prompt templates
+- [x] LLM provider abstraction (Groq)
+- [x] Grounded prompt templates
+- [ ] Wire hybrid retrieval → reranker → generation into one live endpoint
 - [ ] Page-level citations
-- [ ] “Not enough evidence” fallback
+- [ ] "Not enough evidence" fallback
 - [ ] Streaming responses
 - [ ] Conversation history
 
 ### Phase 7: Evaluation and Product Features
 
-- [ ] Retrieval evaluation
+- [x] Retrieval evaluation (Recall, Precision, Hit Rate, MRR, NDCG)
+- [x] Latency tracking
 - [ ] RAGAS metrics
 - [ ] Faithfulness scoring
-- [ ] Latency tracking
 - [ ] Feedback collection
 - [ ] Analytics dashboard
 - [ ] Document comparison
@@ -1516,6 +1439,8 @@ Page-level citations
     ↓
 Faithfulness and unsupported-claim checks
 ```
+
+Every stage up to "Grounded LLM answer" is implemented and independently tested. Wiring them together behind one endpoint, plus citations and faithfulness checks, is the next milestone.
 
 Simple questions will bypass unnecessary agent behavior. Agentic tools will be reserved for multi-step workflows such as document comparison, calculations, and structured risk analysis.
 
@@ -1561,8 +1486,14 @@ This format is planned and is not part of the current API yet.
 - Chunking strategy
 - Deterministic identifiers
 - Database transactions
+- Embeddings and vector search
+- Hybrid retrieval (dense + lexical)
+- Reciprocal Rank Fusion
+- Cross-encoder reranking
+- Information retrieval evaluation (Recall, Precision, MRR, NDCG, Hit Rate)
+- LLM integration
 - Error handling
-- Automated testing
+- Automated testing with dependency injection and test doubles
 - RAG system design
 - Production-aware engineering
 
@@ -1572,43 +1503,11 @@ This format is planned and is not part of the current API yet.
 
 ### Create a Branch
 
-#### Windows PowerShell
-
-```powershell
-git checkout -b feature/<feature-name>
-```
-
-#### macOS
-
-```bash
-git checkout -b feature/<feature-name>
-```
-
-#### Linux
-
 ```bash
 git checkout -b feature/<feature-name>
 ```
 
 ### Run Tests Before Committing
-
-#### Windows PowerShell
-
-```powershell
-Set-Location backend
-python -m pytest -v
-Set-Location ..
-```
-
-#### macOS
-
-```bash
-cd backend
-python -m pytest -v
-cd ..
-```
-
-#### Linux
 
 ```bash
 cd backend
@@ -1617,24 +1516,6 @@ cd ..
 ```
 
 ### Commit and Push
-
-#### Windows PowerShell
-
-```powershell
-git add .
-git commit -m "feat: describe the change"
-git push -u origin feature/<feature-name>
-```
-
-#### macOS
-
-```bash
-git add .
-git commit -m "feat: describe the change"
-git push -u origin feature/<feature-name>
-```
-
-#### Linux
 
 ```bash
 git add .
@@ -1650,12 +1531,10 @@ Not implemented yet:
 
 - OCR execution for image-only PDFs
 - DOCX, HTML, CSV, and image ingestion
-- Embedding generation
-- Qdrant vector indexing
-- Semantic or hybrid retrieval
-- Cross-encoder reranking
-- LLM answer generation
-- Source-citation responses
+- A live query/chat endpoint wiring retrieval, reranking, and generation together
+- Page-level citations in API responses
+- Streaming responses
+- Faithfulness / RAGAS-style scoring
 - Authentication
 - Cloud object storage
 - Production deployment
@@ -1683,9 +1562,9 @@ The goal is a reliable document intelligence system that:
 - Shows where every answer came from
 - Preserves page-level evidence
 - Knows when the document does not contain an answer
-- Measures retrieval and answer quality
+- Measures retrieval and answer quality, not just "vibes"
 - Supports safe reprocessing
 - Remains explainable in interviews and system-design discussions
 - Can evolve from a local MVP into a deployable enterprise-style platform
 
-> **Evidence before answers. Grounding before generation.**
+> **Evidence before answers. Grounding before generation. Measurement before claims.**
