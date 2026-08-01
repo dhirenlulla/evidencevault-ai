@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 
 class BaseLLMService(ABC):
     """ 
@@ -21,4 +22,17 @@ class BaseLLMService(ABC):
     ) -> str:
         """ 
         Generate an answer from a prompt.
+        """
+        
+    @abstractmethod
+    def generate_answer_stream(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+    ) -> AsyncIterator:
+        """ 
+        Stream an answer from prompt, yielding text
+        fragments as the model produces them instead
+        of waiting for the complete answer.
         """
