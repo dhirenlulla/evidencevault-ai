@@ -105,6 +105,11 @@ class Settings(BaseSettings):
     
     reranker_device: str = "cpu"
     
+    evaluation_default_k: int = Field(
+        default=5,
+        ge=1,
+    )
+    
     llm_timeout_seconds: float = 60.0
 
     model_config = SettingsConfigDict(

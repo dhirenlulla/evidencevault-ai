@@ -23,6 +23,10 @@ from app.services.hybrid_retrieval import HybridRetrievalService
 from app.services.generation import GenerationService
 from app.services.groq_llm import GroqLLMService
 from app.services.prompt_builder import PromptBuilder
+from app.services.evaluation import (
+    RetrievalEvaluator,
+    RetrievalMetricsAggregator,
+)
 
 
 def get_retrieval_service() -> RetrievalService:
@@ -98,6 +102,27 @@ def _cached_reranker_service(
         device=device,
     )
     
+    
+def get_retrieval_evaluator() -> RetrievalEvaluator:
+    """ 
+    Construct the retrieval evaluation service.
+    
+    Stateless - holds no model, no settings, no connections - so a
+    new instance is effectively free. No caching needed.
+    """
+    
+    return RetrievalEvaluator()
+
+
+def get_retrieval_metrics_aggregator() -> (
+    RetrievalMetricsAggregator
+):
+    """ 
+    Construct the metrics aggregation service. Also stateless.
+    """
+    
+    return RetrievalMetricsAggregator()
+
     
 def get_generation_service() -> GenerationService:
     """ 
