@@ -58,12 +58,14 @@ class HybridRetrievalService:
         Execute dense and lexical retrieval, then fuse both
         rankings into a single ordered result set using RRF.        """
         
-        dense_results = await(
+        retrieval_result = await(
             self._retrieval_service.retrieve(
                 document_id=document_id,
                 query=query,
             )
         )
+        
+        dense_results = retrieval_result.chunks
         
         bm25_results = self._bm25_service.rank(
             query=query,

@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     )
 
     sql_echo: bool = False
+    log_level: str = "INFO"
 
     qdrant_url: str = "http://localhost:6333"
     qdrant_timeout_seconds: float = 5.0

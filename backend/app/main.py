@@ -5,7 +5,9 @@ from fastapi import FastAPI
 
 from app.api.routes.health import router as health_router
 from app.api.routes.documents import router as documents_router
+from app.api.middleware import RequestContextMiddleware
 from app.core.config import get_settings
+from app.core.logging import configure_logging
 from app.clients.qdrant import close_qdrant_client
 from app.db.session import close_database_engine
 from app.services.local_storage import (
@@ -13,6 +15,8 @@ from app.services.local_storage import (
 )
 
 settings = get_settings()
+
+configure_logging(level=settings.log_level)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -47,6 +51,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
+app.add_middleware(RequestContextMiddleware)
 
 app.include_router(
     health_router,

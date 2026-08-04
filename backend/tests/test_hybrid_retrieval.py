@@ -8,7 +8,7 @@ from app.services.hybrid_retrieval import (
     HybridRetrievalResult,
     HybridRetrievalService,
 )
-from app.schemas.retrieval import RetrievedChunk
+from app.schemas.retrieval import RetrievedChunk, RetrievalResult
 from app.services.bm25 import BM25Result
 from app.services.rrf import RRFService
 
@@ -60,7 +60,11 @@ class FakeRetrievalService:
             }
         )
 
-        return self.result
+        return RetrievalResult(
+            query=query,
+            total_results=len(self.result),
+            chunks=tuple(self.result),
+        )
 
 
 class FakeBM25Service:
