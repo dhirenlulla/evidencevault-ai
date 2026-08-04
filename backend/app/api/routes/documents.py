@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import Annotated
 from uuid import UUID, uuid4
 
@@ -11,6 +12,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,7 +22,13 @@ from app.core.exceptions import (
     FileStorageError,
     FileTooLargeError,
     InvalidFileError,
+    LLMAuthenticationError,
+    LLMConnectionError,
+    LLMGenerationError,
+    LLMRateLimitError,
+    LLMTimeoutError,
     NoChunksGeneratedError,
+    RerankingError,
     UnsupportedFileTypeError,
 )
 from app.db.session import get_db_session
@@ -56,6 +64,7 @@ from app.services.local_storage import (
 from app.core.dependencies import (
     get_retrieval_service,
     get_generation_service,
+    get_rag_pipeline_service,
 )
 
 from app.schemas.retrieval import (
@@ -73,10 +82,15 @@ from app.services.retrieval import (
 from app.schemas.answer import (
     AnswerResponse,
     AnswerRequest,
+    AnswerToken,
 )
 
 from app.services.generation import (
     GenerationService,
+)
+
+from app.services.rag_pipeline import (
+    RAGPipelineService,
 )
 
 logger = logging.getLogger(__name__)
@@ -609,4 +623,189 @@ async def generate_document_answer(
     return await generation_service.generate_answer(
         document_id=document_id,
         query=request.query,
+    )
+    
+def _map_pipeline_exception(exc: Exception) -> HTTPException:
+    """ 
+    Translate a pipeline failure into the appropriate HTTP response,
+    without leaking provider-specific exception details to the client.
+    """
+    
+    if isinstance(exc, LLMRateLimitError):
+        return HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail = (
+                "The language model provider is "
+                "rate-limiting requests. Please try "
+                "again shortly."
+            ),
+        )
+        
+    if isinstance(exc, LLMTimeoutError):
+        return HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail = (
+                "The language model took too long "
+                "to respond."
+            ),
+        )
+        
+    if isinstance(
+        exc, 
+        (LLMConnectionError, LLMAuthenticationError),
+    ):
+        return HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+            detail = (
+                "The language model provider could "
+                "not be reached"
+            )
+        )
+        
+    if isinstance(exc, (LLMGenerationError, RerankingError)):
+        return HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=(
+                "The answer could not be generated."
+            ),
+        )
+        
+    return HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=(
+            "An unexpected error occurred while "
+            "answering the question."
+        ),
+    )
+    
+    
+@router.post(
+    "/{document_id}/query",
+    response_model=AnswerResponse,
+    summary = (
+        "Run the full pipeline: hybrid retrieval, RRF Fusion,"
+        "reranking, and generation."
+    ),
+    description = (
+        "Retrieve relevant chunks via hybrid (dense + "
+        "BM25, fused with Reciprocal Rank Fusion) "
+        "retrieval, rerank them with a cross-encoder, "
+        "and generate a grounded answer. Slower than "
+        "/answer, but generally higher quality."
+    ),
+)
+async def query_document(
+    document_id: UUID,
+    request: AnswerRequest,
+    rag_pipeline_service: Annotated[
+        RAGPipelineService,
+        Depends(get_rag_pipeline_service),
+    ]
+) -> AnswerResponse:
+    """ 
+    Execute the complete retrieve -> fuse -> rerank ->
+    generate pipeline and return one grounded answer.
+    """
+    
+    try:
+        return await rag_pipeline_service.generate_answer(
+            document_id=document_id,
+            query=request.query,
+        )
+        
+    except (
+         LLMAuthenticationError,
+        LLMRateLimitError,
+        LLMTimeoutError,
+        LLMConnectionError,
+        LLMGenerationError,
+        RerankingError,
+    ) as exc :
+        raise _map_pipeline_exception(exc) from exc
+    
+    except Exception as exc:
+        logger.exception(
+            "The RAG pipeline failed unexpectedly."
+        )
+        raise _map_pipeline_exception(exc) from exc
+    
+    
+@router.post(
+    "/{document_id}/query/stream",
+    summary=(
+        "Stream the full pipeline as Server-Sent Events."
+    ),
+    description=(
+        "Same pipeline as /query, but streams the answer "
+        "as it is generated using Server-Sent Events (SSE). "
+        "Each event is a JSON object with a 'type' field of"
+        "'token', 'complete' or 'error'. "
+    ),
+)
+async def query_document_stream(
+    document_id: UUID,
+    request: AnswerRequest,
+    rag_pipeline_service: Annotated[
+        RAGPipelineService,
+        Depends(get_rag_pipeline_service),
+    ],
+) -> StreamingResponse:
+    """ 
+    Execute the complete pipeline and stream the answer as
+    Server-Sent Events.
+
+    Once the first byte of a streaming response has been
+    sent, the HTTP status code is already committed as 200 -
+    it cannot be changed to an error status if the LLM fails
+    partway through. So failures here are never allowed to
+    propagate as an unhandled exception; instead, they are
+    caught and sent to the client as one final SSE event with
+    "type": "error", so the client gets a clean, parseable
+    signal instead of a silently truncated connection.
+    """
+    
+    async def event_source():
+        try:
+            async for event in (
+                rag_pipeline_service
+                .generate_answer_stream(
+                    document_id=document_id,
+                    query=request.query,
+                )
+            ):
+                if isinstance(event, AnswerToken):
+                    payload = {
+                        "type": "token",
+                        "text": event.text,
+                    }
+                else:
+                    payload = {
+                        "type": "complete",
+                        **event.model_dump(mode="json"),
+                    }
+
+                yield f"data: {json.dumps(payload)}\n\n"
+
+        except Exception as exc:
+            logger.exception(
+                "The streamed RAG pipeline failed "
+                "partway through."
+            )
+
+            error_payload = {
+                "type": "error",
+                "detail": (
+                    _map_pipeline_exception(exc).detail
+                ),
+            }
+
+            yield (
+                f"data: {json.dumps(error_payload)}\n\n"
+            )
+
+    return StreamingResponse(
+        event_source(),
+        media_type="text/event-stream",
     )

@@ -27,6 +27,7 @@ from app.services.evaluation import (
     RetrievalEvaluator,
     RetrievalMetricsAggregator,
 )
+from app.services.rag_pipeline import RAGPipelineService
 
 
 def get_retrieval_service() -> RetrievalService:
@@ -131,6 +132,23 @@ def get_generation_service() -> GenerationService:
     
     return GenerationService(
         retrieval_service=get_retrieval_service(),
+        prompt_builder=PromptBuilder(),
+        llm_service=GroqLLMService(),
+    )
+    
+
+def get_rag_pipeline_service() -> RAGPipelineService:
+    """ 
+    Construct the full retrieve -> fuse -> rerank -> generate
+    pipeline service, composing the existing hybrid retrieval,
+    reranking, prompt-building, and LLM factories.
+    """
+    
+    return RAGPipelineService(
+        hybrid_retrieval_service=(
+            get_hybrid_retrieval_service()
+        ),
+        reranker=get_reranker_service(),
         prompt_builder=PromptBuilder(),
         llm_service=GroqLLMService(),
     )
