@@ -1,0 +1,35 @@
+# Local environments and caches - never useful inside the image,
+# and .env specifically must never be baked into an image, since
+# images are far easier to accidentally share/publish than a
+# gitignored local file.
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.env
+.env.*
+!.env.example
+
+# Runtime data - the container gets a fresh uploads/ directory
+# (backed by a named volume in compose.yaml), it should never
+# inherit whatever is on the machine doing the build.
+uploads/
+*.log
+
+# Version control and editor metadata
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Note: tests/ is intentionally NOT excluded here. Keeping it in the
+# image costs negligible size (plain Python text files) and enables
+# `docker compose exec backend pytest -v` as a real, working
+# verification step against the containerized environment - useful
+# for a portfolio project where "can you prove it works" matters. A
+# stricter production image (e.g. a multi-stage build with a slim
+# final stage) would drop this; documented here as a deliberate
+# trade-off, not an oversight.

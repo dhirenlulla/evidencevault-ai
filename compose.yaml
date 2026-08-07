@@ -43,9 +43,54 @@ services:
     networks:
       - evidencevault_network
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
+    env_file:
+      - ./backend/.env
+
+    environment:
+      # These two override whatever backend/.env has, on purpose.
+      # backend/.env's defaults use "localhost" for running the API
+      # directly on the host machine (outside Docker). Inside the
+      # Compose network, Postgres and Qdrant are only reachable by
+      # their service name - "localhost" from inside this container
+      # means the backend container itself, not its neighbors.
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      QDRANT_URL: http://qdrant:6333
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - backend_uploads:/app/uploads
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # qdrant has no healthcheck defined above yet (see note below),
+      # so this can only wait for the container process to start, not
+      # for Qdrant to actually be ready to accept connections.
+      qdrant:
+        condition: service_started
+
+    networks:
+      - evidencevault_network
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
 volumes:
   postgres_data:
   qdrant_data:
+  backend_uploads:
 
 networks:
   evidencevault_network:
