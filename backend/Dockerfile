@@ -8,7 +8,8 @@ FROM python:3.10-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    HF_HOME=/app/.cache/huggingface
 
 WORKDIR /app
 
@@ -46,19 +47,19 @@ COPY . .
 # a root-level compromise of the container instead of a contained,
 # unprivileged one.
 RUN useradd --create-home --uid 1000 appuser \
-    && mkdir -p /app/uploads \
+    && mkdir -p /app/uploads /app/.cache/huggingface \
     && chown -R appuser:appuser /app
 
 USER appuser
 
 EXPOSE 8000
 
-# start_period is deliberately generous. Importing sentence-transformers
-# (and therefore torch) at process startup is not instant even before
-# any model weights are loaded, and Phase 10B will add eager model
-# warm-up at startup - budgeting time for that now avoids revisiting
-# this value later.
-HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
+# start_period is deliberately generous. Startup now eagerly warms up
+# the embedding and reranker models (see app/main.py's lifespan), so
+# the container needs real time to load them - especially on a first
+# run before the huggingface cache volume is populated - before the
+# healthcheck should expect a response.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

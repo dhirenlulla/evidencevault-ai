@@ -67,6 +67,7 @@ services:
 
     volumes:
       - backend_uploads:/app/uploads
+      - backend_hf_cache:/app/.cache/huggingface
 
     depends_on:
       postgres:
@@ -91,6 +92,7 @@ volumes:
   postgres_data:
   qdrant_data:
   backend_uploads:
+  backend_hf_cache:
 
 networks:
   evidencevault_network:

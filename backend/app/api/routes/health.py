@@ -4,8 +4,16 @@ from fastapi import APIRouter, Response, status
 
 from app.clients.qdrant import check_qdrant_connection
 from app.core.config import get_settings
+from app.core.dependencies import (
+    get_embedding_service,
+    get_reranker_service,
+)
 from app.db.session import check_database_connection 
-from app.schemas.health import HealthResponse, ComponentHealth
+from app.schemas.health import (
+    ComponentHealth,
+    HealthResponse,
+    ModelHealth,
+)
 
 
 router = APIRouter(
@@ -41,6 +49,9 @@ async def health_check(response: Response) -> HealthResponse:
     if not system_ok:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     
+    embedding_service = get_embedding_service()
+    reranker_service = get_reranker_service()
+    
     return HealthResponse(
         status="ok" if system_ok else "degraded",
         service=settings.app_name,
@@ -53,6 +64,40 @@ async def health_check(response: Response) -> HealthResponse:
         qdrant=ComponentHealth(
             status="ok" if qdrant_ok else "error",
             detail=qdrant_detail,
+        ),
+        embedding_model=ModelHealth(
+            status=(
+                "loaded"
+                if embedding_service.is_model_loaded
+                else "not_loaded"
+            ),
+            model_name=embedding_service.model_name,
+            detail=(
+                "Embedding model is loaded and ready."
+                if embedding_service.is_model_loaded
+                else (
+                    "Embedding model has not been "
+                    "warmed up yet; it will load "
+                    "lazily on first use."
+                )
+            ),
+        ),
+        reranker_model=ModelHealth(
+            status=(
+                "loaded"
+                if reranker_service.is_model_loaded
+                else "not_loaded"
+            ),
+            model_name=reranker_service.model_name,
+            detail=(
+                "Reranker model is loaded and ready."
+                if reranker_service.is_model_loaded
+                else (
+                    "Reranker model has not been "
+                    "warmed up yet; it will load "
+                    "lazily on first use."
+                )
+            ),
         ),
     )
 

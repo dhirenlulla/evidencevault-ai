@@ -74,3 +74,57 @@ def test_health_endpoint_when_qdrant_is_unavailable() -> None:
     assert body["status"] == "degraded"
     assert body["postgres"]["status"] == "ok"
     assert body["qdrant"]["status"] == "error"
+    
+def test_health_response_includes_model_readiness_fields() -> None:
+    """
+    The response should always include embedding_model and
+    reranker_model, whether or not the models happen to be
+    loaded yet.
+    """
+
+    with patch(
+        "app.api.routes.health.check_database_connection",
+        new=AsyncMock(return_value=(True, "ok")),
+    ), patch(
+        "app.api.routes.health.check_qdrant_connection",
+        new=AsyncMock(return_value=(True, "ok")),
+    ):
+        response = client.get("/api/v1/health")
+
+    body = response.json()
+
+    assert "embedding_model" in body
+    assert "reranker_model" in body
+    assert body["embedding_model"]["status"] in (
+        "loaded",
+        "not_loaded",
+    )
+    assert body["reranker_model"]["status"] in (
+        "loaded",
+        "not_loaded",
+    )
+    assert body["embedding_model"]["model_name"]
+    assert body["reranker_model"]["model_name"]
+
+
+def test_model_not_loaded_does_not_affect_overall_status() -> None:
+    """
+    An unloaded model must never drag the overall status/HTTP
+    code down to "degraded"/503 - that's reserved for real
+    infrastructure failures (Postgres/Qdrant). TestClient here
+    is constructed without triggering the app's lifespan startup
+    (no warm-up runs), so the models are guaranteed not_loaded
+    for this test, which is exactly the case being verified.
+    """
+
+    with patch(
+        "app.api.routes.health.check_database_connection",
+        new=AsyncMock(return_value=(True, "ok")),
+    ), patch(
+        "app.api.routes.health.check_qdrant_connection",
+        new=AsyncMock(return_value=(True, "ok")),
+    ):
+        response = client.get("/api/v1/health")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"

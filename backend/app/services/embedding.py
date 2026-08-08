@@ -127,6 +127,42 @@ class EmbeddingService:
     def normalized(self) -> bool:
         return self._normalize_embeddings
 
+    @property
+    def is_model_loaded(self) -> bool:
+        """ 
+        Whether the underlying model has already been loaded
+        into memory.
+
+        Does not trigger a load itself - this is a read-only
+        status check, intended for health reporting, that must
+        stay cheap enough to call on every health check request
+        without side effects.
+        """
+
+        return self._model is not None
+
+    def warm_up(self) -> None:
+        """ 
+        Eagerly load the model instead of waiting for the first
+        real embedding request to trigger it.
+
+        Intended to be called once at application startup so a
+        freshly booted instance's health check can honestly
+        report "ready to serve," rather than only discovering a
+        broken model configuration when the first real user
+        request hits it.
+        """
+
+        self._load_model()
+
+    async def warm_up_async(self) -> None:
+        """ 
+        Warm up without blocking the event loop, for use in an
+        async startup path.
+        """
+
+        await asyncio.to_thread(self.warm_up)
+
     def _load_model(
         self,
     ) -> SentenceTransformer:

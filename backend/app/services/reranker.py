@@ -81,6 +81,35 @@ class CrossEncoderReranker:
     def top_k(self) -> int:
         return self.top_k
     
+    @property
+    def is_model_loaded(self) -> bool:
+        """ 
+        Whether the underlying cross-encoder has already been
+        loaded into memory.
+
+        Does not trigger a load itself - a read-only status
+        check for health reporting, kept cheap enough to call
+        on every health check without side effects.
+        """
+
+        return self._model is not None
+
+    def warm_up(self) -> None:
+        """ 
+        Eagerly load the model instead of waiting for the first
+        real rerank request to trigger it. Intended to be
+        called once at application startup.
+        """
+
+        self._load_model()
+
+    async def warm_up_async(self) -> None:
+        """ 
+        Warm up without blocking the event loop.
+        """
+
+        await asyncio.to_thread(self.warm_up)
+    
     def _load_model(self) -> CrossEncoder:
         """ 
         Load the configured cross-encoder model once.
