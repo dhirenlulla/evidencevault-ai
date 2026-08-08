@@ -75,11 +75,11 @@ class CrossEncoderReranker:
         
     @property
     def model_name(self) -> str:
-        return self.model_name
+        return self._model_name
     
     @property
     def top_k(self) -> int:
-        return self.top_k
+        return self._top_k
     
     @property
     def is_model_loaded(self) -> bool:
